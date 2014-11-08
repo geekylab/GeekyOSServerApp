@@ -1,10 +1,12 @@
 var express = require('express');
-//var mongoose = require('mongoose');
-//var api = require('./routes/api');
+var bodyParser = require('body-parser');
+var mongoose = require('mongoose');
 var app = express();
 var fs = require('fs');
 
 app.set('view engine', 'ejs');
+app.use(bodyParser.json({limit: '50mb'}));
+app.use(bodyParser.urlencoded({extended: false, limit: '50mb'}));
 
 //readPlugin
 var allPlugins = [];
@@ -27,7 +29,7 @@ fs.readdir(pluginDir, function (err, files) {
     }
 });
 
-require('./routes/api')(app, allPlugins);
+require('./routes/api')(app, allPlugins, mongoose);
 
 
 app.listen(3000);
