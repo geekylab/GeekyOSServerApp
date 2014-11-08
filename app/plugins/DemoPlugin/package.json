@@ -1,0 +1,7 @@
+{
+    "name": "DemoPlugin",
+    "version": "0.0.1",
+    "routeName": "/demo",
+    "routes": "/routes/index",
+    "enabled": true
+}
