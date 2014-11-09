@@ -5,7 +5,7 @@
 
       [Service]
       ExecStartPre=-/usr/bin/docker rm -f GEEKY_MENU_ADMIN_API
-      ExecStart=/usr/bin/docker run -p 3000:3000 --link GEEKY_MONGO:GEEKY_MONGO -v /home/core/GeekyMenuAdmin/app:/app:rw --name GEEKY_MENU_ADMIN_API johna1203/geeky-menu-admin-api
+      ExecStart=/usr/bin/docker run -p 3000:3000 --link GEEKY_MONGO:GEEKY_MONGO -v /home/core/GeekyMenuAdmin/app:/app:rw --name GEEKY_MENU_ADMIN_API geekylab/geeky-menu-admin-api
       ExecStop=/usr/bin/docker stop GEEKY_MENU_ADMIN_API
       Restart=always
 
