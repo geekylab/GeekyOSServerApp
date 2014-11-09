@@ -1,0 +1,21 @@
+2014-11-09 18:14:45,492 CRIT Supervisor running as root (no user in config file)
+2014-11-09 18:14:45,505 INFO RPC interface 'supervisor' initialized
+2014-11-09 18:14:45,505 CRIT Server 'unix_http_server' running without any HTTP authentication checking
+2014-11-09 18:14:45,505 INFO supervisord started with pid 78
+2014-11-09 18:14:46,508 INFO spawned: 'geekymenuapp' with pid 81
+2014-11-09 18:14:47,509 INFO success: geekymenuapp entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2014-11-09 18:15:09,710 INFO stopped: geekymenuapp (exit status 143)
+2014-11-09 18:15:10,718 INFO spawned: 'geekymenuapp' with pid 84
+2014-11-09 18:15:11,720 INFO success: geekymenuapp entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2014-11-09 18:15:32,339 INFO stopped: geekymenuapp (exit status 143)
+2014-11-09 18:15:33,347 INFO spawned: 'geekymenuapp' with pid 96
+2014-11-09 18:15:34,349 INFO success: geekymenuapp entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2014-11-09 18:15:55,615 INFO stopped: geekymenuapp (exit status 143)
+2014-11-09 18:15:56,624 INFO spawned: 'geekymenuapp' with pid 108
+2014-11-09 18:15:57,627 INFO success: geekymenuapp entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
+2014-11-09 18:18:43,288 CRIT Supervisor running as root (no user in config file)
+2014-11-09 18:18:43,299 INFO RPC interface 'supervisor' initialized
+2014-11-09 18:18:43,300 CRIT Server 'unix_http_server' running without any HTTP authentication checking
+2014-11-09 18:18:43,300 INFO supervisord started with pid 17
+2014-11-09 18:18:44,302 INFO spawned: 'geekymenuapp' with pid 20
+2014-11-09 18:18:45,304 INFO success: geekymenuapp entered RUNNING state, process has stayed up for > than 1 seconds (startsecs)
