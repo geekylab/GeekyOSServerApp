@@ -11,6 +11,19 @@ module.exports = function (app, plugins, mongoose, appEvent) {
         res.json(plugins);
     });
 
+    app.get('/api/dashboard/index', function (req, res) {
+        Tables.count({table_status: 1}, function (err, count) {
+            if (err) {
+                console.log(err);
+                res.json(err);
+            }
+            var response = {
+                busy_tables: count
+            };
+            console.log(response);
+            res.json(response);
+        });
+    });
 
     /**
      * Store
@@ -148,6 +161,261 @@ module.exports = function (app, plugins, mongoose, appEvent) {
 
         return updateData;
     }
+
+    /**
+     * Category
+     */
+
+    app.get('/api/category', function (req, res) {
+        Categories.find({}, function (err, rows) {
+            if (err)
+                res.json(err);
+            res.json(rows);
+        });
+    });
+
+    app.get('/api/category/:id', function (req, res) {
+        Categories.findOne({_id: req.params.id}, function (err, item) {
+            if (err)
+                res.json(err);
+
+
+            console.info("get item :" + req.params.id, item);
+            res.json(item);
+
+        });
+    });
+
+    app.put('/api/category/:id', function (req, res) {
+        Categories.findByIdAndUpdate(req.params.id, {
+                $set: {
+                    name: req.body.name
+                }
+            },
+            {upsert: true},
+            function (err, obj) {
+                if (err) {
+                    console.log(err);
+                    res.json(err);
+                }
+                res.json(obj);
+            });
+    });
+
+
+    app.post('/api/category', function (req, res) {
+
+        console.info("post data", req.body);
+
+        var category = new Categories();
+        if (req.body.name != undefined)
+            category.name = req.body.name;
+        category.save(function (err) {
+            if (err) {
+                res.json(err);
+            }
+            console.info("insert item", category);
+            res.json(category);
+        });
+    });
+
+    app.delete('/api/category/:id', function (req, res) {
+        Categories.findByIdAndRemove(req.params.id, function (err, response) {
+            if (err) {
+                res.json(err);
+            }
+            res.json({message: 'Deleted!'});
+        });
+    });
+
+
+    /**
+     * Item
+     */
+
+    app.get('/api/item', function (req, res) {
+        Items.find({}, function (err, rows) {
+            if (err)
+                res.json(err);
+            res.json(rows);
+        });
+    });
+
+    app.get('/api/item/:id', function (req, res) {
+        Items.findOne({_id: req.params.id})
+            .populate("ingredients")
+            .exec(function (err, item) {
+                if (err) {
+                    return res.json(err);
+                }
+                res.json(item);
+
+            });
+    });
+
+    app.put('/api/item/:id', function (req, res) {
+
+        var updateItem = {};
+        updateItem.name = req.body.name;
+        updateItem.desc = req.body.desc;
+        updateItem.price = req.body.price;
+        updateItem.time = req.body.time;
+        updateItem.images = req.body.images;
+        updateItem.categories = req.body.categories;
+        updateItem.stores = req.body.stores;
+        updateItem.ingredients = [];
+
+        if (req.body.ingredients != null) {
+            req.body.ingredients.forEach(function (ingredient) {
+                updateItem.ingredients.push(ingredient._id);
+            });
+        }
+
+
+        Items.findByIdAndUpdate(req.params.id, {
+                $set: updateItem
+                //{
+                //    name: req.body.name,
+                //    desc: req.body.desc,
+                //    price: req.body.price,
+                //    time: req.body.time,
+                //    images: req.body.images,
+                //    categories: req.body.categories,
+                //    ingredients: req.body.ingredients
+                //}
+            },
+            {upsert: true},
+            function (err, obj) {
+                if (err) {
+                    console.log(err);
+                    return res.json(err);
+                }
+                res.json(obj);
+            });
+    });
+
+
+    app.post('/api/item', function (req, res) {
+
+        var item = new Items();
+        if (req.body.name != undefined)
+            item.name = req.body.name;
+
+        if (req.body.desc != undefined)
+            item.desc = req.body.desc;
+
+        if (req.body.price != undefined)
+            item.price = req.body.price;
+
+        if (req.body.time != undefined)
+            item.time = req.body.time;
+
+        if (req.body.images != undefined)
+            item.images = req.body.images;
+
+        if (req.body.categories != undefined)
+            item.categories = req.body.categories;
+
+        if (req.body.stores != undefined)
+            item.stores = req.body.stores;
+
+        item.ingredients = [];
+        if (req.body.ingredients != undefined) {
+            req.body.ingredients.forEach(function (ingredient) {
+                item.ingredients.push(ingredient._id);
+            });
+        }
+
+        item.save(function (err) {
+            if (err) {
+                return res.json(err);
+            }
+            res.json(item);
+        });
+    });
+
+    app.delete('/api/item/:id', function (req, res) {
+        Items.findByIdAndRemove(req.params.id, function (err, response) {
+            if (err) {
+                res.json(err);
+            }
+            res.json({message: 'Deleted!'});
+        });
+    });
+
+    /*
+     Ingredients
+     */
+
+    app.get('/api/ingredients', function (req, res) {
+        if (req.query.name != undefined && req.query.lang != undefined) {
+            var conditions = {};
+            conditions['text.' + req.query.lang] = new RegExp(req.query.name, 'i');
+            Ingredients.find(conditions, function (err, rows) {
+                if (err)
+                    res.json([err]);
+                res.json(rows);
+            });
+        } else {
+            res.json([]);
+        }
+    });
+
+    app.post('/api/ingredients', function (req, res) {
+        var user = req.user;
+        var ingredient = new Ingredients();
+
+        if (req.body.text != null)
+            ingredient.text = req.body.text;
+
+        if (req.body.desc != null)
+            ingredient.desc = req.body.desc;
+
+        if (req.body.is_okay != null)
+            ingredient.is_okay = false;
+
+        if (req.body.user_id != null)
+            ingredient.user_id = user._id;
+
+        ingredient.save(function (err) {
+            if (err) {
+                res.json(err);
+            }
+            console.info("insert ingredient", ingredient);
+            res.json(ingredient);
+        });
+
+    });
+
+    app.put('/api/ingredients/:id', function (req, res) {
+        var user = req.user;
+        var ingredient = {};
+
+        if (req.body.text != null)
+            ingredient.text = req.body.text;
+
+        if (req.body.desc != null)
+            ingredient.desc = req.body.desc;
+
+        if (req.body.is_okay != null)
+            ingredient.is_okay = false;
+
+        if (req.body.user_id != null)
+            ingredient.user_id = user._id;
+
+        Ingredients.findOneAndUpdate({'_id': req.params.id}, {
+                $set: ingredient
+            },
+            function (err, obj) {
+                if (err) {
+                    res.json(err);
+                } else {
+                    console.log(obj, err);
+                    res.json(obj);
+                }
+            });
+
+    });
 
 
 };

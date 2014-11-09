@@ -1,0 +1,7 @@
+{
+    "name": "GeekyMenuSync",
+    "version": "0.0.1",
+    "routeName": "/sync",
+    "routes": "/routes/index",
+    "enabled": true
+}
