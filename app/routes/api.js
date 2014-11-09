@@ -6,7 +6,7 @@ var Tables = model.Tables;
 var Stores = model.Stores;
 var Ingredients = model.Ingredients;
 
-module.exports = function (app, plugins, mongoose) {
+module.exports = function (app, plugins, mongoose, appEvent) {
     app.get('/plugins', function (req, res) {
         res.json(plugins);
     });
@@ -74,6 +74,7 @@ module.exports = function (app, plugins, mongoose) {
                 res.json(err);
             }
             res.json(store);
+            appEvent.emit("save:store", store);
         });
     });
 
@@ -147,7 +148,6 @@ module.exports = function (app, plugins, mongoose) {
 
         return updateData;
     }
-
 
 
 };

@@ -3,6 +3,8 @@ var bodyParser = require('body-parser');
 var mongoose = require('mongoose');
 var app = express();
 var fs = require('fs');
+var EventEmitter = require('events').EventEmitter;
+var appEvent = new EventEmitter();
 
 app.set('view engine', 'ejs');
 app.use(bodyParser.json({limit: '50mb'}));
@@ -19,7 +21,7 @@ fs.readdir(pluginDir, function (err, files) {
         if (config.routes != undefined) {
             if (config.enabled) {
                 if (fs.existsSync(packageDir + config.routes + '.js')) {
-                    require(packageDir + config.routes)(app);
+                    require(packageDir + config.routes)(app, appEvent);
                 } else {
                     console.log(packageDir + config.routes + '.js', 'not found');
                 }
@@ -29,7 +31,7 @@ fs.readdir(pluginDir, function (err, files) {
     }
 });
 
-require('./routes/api')(app, allPlugins, mongoose);
+require('./routes/api')(app, allPlugins, mongoose, appEvent);
 
 
 app.listen(3000);

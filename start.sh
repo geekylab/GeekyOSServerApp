@@ -2,4 +2,4 @@
 
 cd /app && npm install
 
-node index.js
+/usr/local/bin/supervisord -n

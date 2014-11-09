@@ -21,6 +21,10 @@ RUN \
   rm -rf /tmp/node-v* && \
   echo '\n# Node.js\nexport PATH="node_modules/.bin:$PATH"' >> /root/.bashrc
 
+RUN easy_install supervisor
+RUN mkdir -p /var/log/supervisor
+ADD supervisord.conf /etc/supervisord.conf
+
 RUN mkdir           /app
 
 ADD ./start.sh /start.sh
