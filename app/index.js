@@ -36,5 +36,4 @@ fs.readdir(pluginDir, function (err, files) {
 
 require('./routes/api')(app, allPlugins, mongoose, appEvent);
 
-app.listen(3000);
-
+module.exports = app;

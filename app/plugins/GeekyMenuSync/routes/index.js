@@ -3,6 +3,9 @@ module.exports = function (app, appEvent) {
     appEvent.on('save:store', function (store) {
         console.log("save store");
         console.log(store);
+
+        request.post('http://service.com/upload', {form:{key:'value'}})
+
     });
 
 
