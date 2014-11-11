@@ -245,7 +245,7 @@ Store.index({location: "2dsphere"});
 
 var Users = mongoose.Schema({
     local: {
-        email: String,
+        username: String,
         password: String
     },
     facebook: {

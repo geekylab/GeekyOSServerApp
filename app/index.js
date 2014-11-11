@@ -5,10 +5,27 @@ var app = express();
 var fs = require('fs');
 var EventEmitter = require('events').EventEmitter;
 var appEvent = new EventEmitter();
+var passport = require('passport');
+var flash = require('connect-flash');
+var expressSession = require('express-session');
+require('./config/passport')(passport);
 
+//app settings
 app.set('view engine', 'ejs');
 app.use(bodyParser.json({limit: '50mb'}));
 app.use(bodyParser.urlencoded({extended: false, limit: '50mb'}));
+
+// required for passport
+app.use(expressSession({
+        secret: 'lfsjdlfkjsdlfjsldkjfsblablablabla',
+        proxy: true,
+        resave: true,
+        saveUninitialized: true
+    })
+); // session secret
+app.use(passport.initialize());
+app.use(passport.session());
+app.use(flash());
 
 //readPlugin
 var allPlugins = [];
@@ -34,6 +51,7 @@ fs.readdir(pluginDir, function (err, files) {
     });
 });
 
+require('./routes/login')(app, allPlugins, mongoose, appEvent, passport);
 require('./routes/api')(app, allPlugins, mongoose, appEvent);
 
 module.exports = app;
