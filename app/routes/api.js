@@ -73,6 +73,7 @@ module.exports = function (app, plugins, mongoose, appEvent) {
                 if (err) {
                     res.json(err);
                 }
+                appEvent.emit("update:store", obj);
                 res.json(obj);
             });
     });
@@ -86,8 +87,8 @@ module.exports = function (app, plugins, mongoose, appEvent) {
             if (err) {
                 res.json(err);
             }
-            res.json(store);
             appEvent.emit("save:store", store);
+            res.json(store);
         });
     });
 
