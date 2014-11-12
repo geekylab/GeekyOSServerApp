@@ -7,11 +7,20 @@ var Stores = model.Stores;
 var Ingredients = model.Ingredients;
 
 module.exports = function (app, plugins, mongoose, appEvent) {
+
+    function isLoggedIn(req, res, next) {
+        if (req.isAuthenticated())
+            return next();
+        res.status(401);
+        res.json({error: 'Authenticate error'});
+    }
+
+
     app.get('/plugins', function (req, res) {
         res.json(plugins);
     });
 
-    app.get('/api/dashboard/index', function (req, res) {
+    app.get('/api/dashboard/index', isLoggedIn, function (req, res) {
         Tables.count({table_status: 1}, function (err, count) {
             if (err) {
                 console.log(err);
@@ -28,7 +37,7 @@ module.exports = function (app, plugins, mongoose, appEvent) {
     /**
      * Store
      */
-    app.get('/api/store', function (req, res) {
+    app.get('/api/store', isLoggedIn, function (req, res) {
 //        var user = req.user;
         Stores.find()
             .populate('users')
@@ -40,7 +49,7 @@ module.exports = function (app, plugins, mongoose, appEvent) {
     });
 
 
-    app.get('/api/store/:id/:lang?', function (req, res) {
+    app.get('/api/store/:id/:lang?', isLoggedIn, function (req, res) {
         var user = req.user;
         var lang = req.params.lang;
 
@@ -62,7 +71,7 @@ module.exports = function (app, plugins, mongoose, appEvent) {
             });
     });
 
-    app.put('/api/store/:id', function (req, res) {
+    app.put('/api/store/:id', isLoggedIn, function (req, res) {
         var user = req.user;
         var updateData = {};
         getStoreObjectFromReq(req, updateData);
@@ -78,7 +87,7 @@ module.exports = function (app, plugins, mongoose, appEvent) {
             });
     });
 
-    app.post('/api/store', function (req, res) {
+    app.post('/api/store', isLoggedIn, function (req, res) {
         var user = req.user;
         var store = new Stores();
 //        store.users.push(user);
@@ -92,7 +101,7 @@ module.exports = function (app, plugins, mongoose, appEvent) {
         });
     });
 
-    app.delete('/api/store/:id', function (req, res) {
+    app.delete('/api/store/:id', isLoggedIn, function (req, res) {
         var user = req.user;
         Stores.findByIdAndRemove(req.params.id, function (err, response) {
             if (err) {
@@ -167,7 +176,7 @@ module.exports = function (app, plugins, mongoose, appEvent) {
      * Category
      */
 
-    app.get('/api/category', function (req, res) {
+    app.get('/api/category', isLoggedIn, function (req, res) {
         Categories.find({}, function (err, rows) {
             if (err)
                 res.json(err);
@@ -175,7 +184,7 @@ module.exports = function (app, plugins, mongoose, appEvent) {
         });
     });
 
-    app.get('/api/category/:id', function (req, res) {
+    app.get('/api/category/:id', isLoggedIn, function (req, res) {
         Categories.findOne({_id: req.params.id}, function (err, item) {
             if (err)
                 res.json(err);
@@ -187,7 +196,7 @@ module.exports = function (app, plugins, mongoose, appEvent) {
         });
     });
 
-    app.put('/api/category/:id', function (req, res) {
+    app.put('/api/category/:id', isLoggedIn, function (req, res) {
         Categories.findByIdAndUpdate(req.params.id, {
                 $set: {
                     name: req.body.name
@@ -204,7 +213,7 @@ module.exports = function (app, plugins, mongoose, appEvent) {
     });
 
 
-    app.post('/api/category', function (req, res) {
+    app.post('/api/category', isLoggedIn, function (req, res) {
 
         console.info("post data", req.body);
 
@@ -220,7 +229,7 @@ module.exports = function (app, plugins, mongoose, appEvent) {
         });
     });
 
-    app.delete('/api/category/:id', function (req, res) {
+    app.delete('/api/category/:id', isLoggedIn, function (req, res) {
         Categories.findByIdAndRemove(req.params.id, function (err, response) {
             if (err) {
                 res.json(err);
@@ -234,7 +243,7 @@ module.exports = function (app, plugins, mongoose, appEvent) {
      * Item
      */
 
-    app.get('/api/item', function (req, res) {
+    app.get('/api/item', isLoggedIn, function (req, res) {
         Items.find({}, function (err, rows) {
             if (err)
                 res.json(err);
@@ -242,7 +251,7 @@ module.exports = function (app, plugins, mongoose, appEvent) {
         });
     });
 
-    app.get('/api/item/:id', function (req, res) {
+    app.get('/api/item/:id', isLoggedIn, function (req, res) {
         Items.findOne({_id: req.params.id})
             .populate("ingredients")
             .exec(function (err, item) {
@@ -254,7 +263,7 @@ module.exports = function (app, plugins, mongoose, appEvent) {
             });
     });
 
-    app.put('/api/item/:id', function (req, res) {
+    app.put('/api/item/:id', isLoggedIn, function (req, res) {
 
         var updateItem = {};
         updateItem.name = req.body.name;
@@ -296,7 +305,7 @@ module.exports = function (app, plugins, mongoose, appEvent) {
     });
 
 
-    app.post('/api/item', function (req, res) {
+    app.post('/api/item', isLoggedIn, function (req, res) {
 
         var item = new Items();
         if (req.body.name != undefined)
@@ -335,7 +344,7 @@ module.exports = function (app, plugins, mongoose, appEvent) {
         });
     });
 
-    app.delete('/api/item/:id', function (req, res) {
+    app.delete('/api/item/:id', isLoggedIn, function (req, res) {
         Items.findByIdAndRemove(req.params.id, function (err, response) {
             if (err) {
                 res.json(err);
@@ -348,7 +357,7 @@ module.exports = function (app, plugins, mongoose, appEvent) {
      Ingredients
      */
 
-    app.get('/api/ingredients', function (req, res) {
+    app.get('/api/ingredients', isLoggedIn, function (req, res) {
         if (req.query.name != undefined && req.query.lang != undefined) {
             var conditions = {};
             conditions['text.' + req.query.lang] = new RegExp(req.query.name, 'i');
@@ -362,7 +371,7 @@ module.exports = function (app, plugins, mongoose, appEvent) {
         }
     });
 
-    app.post('/api/ingredients', function (req, res) {
+    app.post('/api/ingredients', isLoggedIn, function (req, res) {
         var user = req.user;
         var ingredient = new Ingredients();
 
@@ -388,7 +397,7 @@ module.exports = function (app, plugins, mongoose, appEvent) {
 
     });
 
-    app.put('/api/ingredients/:id', function (req, res) {
+    app.put('/api/ingredients/:id', isLoggedIn, function (req, res) {
         var user = req.user;
         var ingredient = {};
 
