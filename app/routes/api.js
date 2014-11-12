@@ -9,10 +9,10 @@ var Ingredients = model.Ingredients;
 module.exports = function (app, plugins, mongoose, appEvent) {
 
     function isLoggedIn(req, res, next) {
-        if (req.isAuthenticated())
+//        if (req.isAuthenticated())
             return next();
-        res.status(401);
-        res.json({error: 'Authenticate error'});
+        //res.status(401);
+        //res.json({error: 'Authenticate error'});
     }
 
 
