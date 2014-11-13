@@ -38,7 +38,6 @@ module.exports = function (app, plugins, mongoose, appEvent) {
      */
     app.get('/api/store', isLoggedIn, function (req, res) {
         var user = req.user;
-        console.log(user);
         Stores.find()
             .populate('users')
             .exec(function (err, rows) {
