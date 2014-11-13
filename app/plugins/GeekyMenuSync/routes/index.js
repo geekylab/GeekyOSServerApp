@@ -32,6 +32,23 @@ module.exports = function (app, appEvent, mongoose) {
         updateSyncData(syncName, 'delete', storeId);
     });
 
+    //item
+    appEvent.on('save:item', function (store) {
+        var syncName = 'save:item';
+        updateSyncData(syncName, 'save', store._id);
+    });
+
+    appEvent.on('update:item', function (store) {
+        var syncName = 'update:item';
+        updateSyncData(syncName, 'update', store._id);
+    });
+
+    appEvent.on('delete:item', function (storeId) {
+        var syncName = 'delete:item';
+        updateSyncData(syncName, 'delete', storeId);
+    });
+
+
     function updateSyncData(syncName, syncType, dataId) {
         SyncSchema.findOne({'name': syncName}, function (err, row) {
             if (err) {
@@ -71,6 +88,15 @@ module.exports = function (app, appEvent, mongoose) {
 
 
     app.get('/sync', function (req, res) {
-        res.render(__dirname + '/../views/index.ejs');
+        //todo: do sync to cloud
+        res.json({
+            status: true,
+            message: 'Success'
+        });
     });
+
+    //app.get('/sync', function (req, res) {
+    //    res.render(__dirname + '/../views/index.ejs');
+    //});
+
 };

@@ -301,6 +301,7 @@ module.exports = function (app, plugins, mongoose, appEvent) {
                     console.log(err);
                     return res.json(err);
                 }
+                appEvent.emit("update:item", obj);
                 res.json(obj);
             });
     });
@@ -341,6 +342,7 @@ module.exports = function (app, plugins, mongoose, appEvent) {
             if (err) {
                 return res.json(err);
             }
+            appEvent.emit("save:item", item);
             res.json(item);
         });
     });
@@ -348,8 +350,9 @@ module.exports = function (app, plugins, mongoose, appEvent) {
     app.delete('/api/item/:id', isLoggedIn, function (req, res) {
         Items.findByIdAndRemove(req.params.id, function (err, response) {
             if (err) {
-                res.json(err);
+                return res.json(err);
             }
+            appEvent.emit("delete:item", req.params.id);
             res.json({message: 'Deleted!'});
         });
     });
