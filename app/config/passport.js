@@ -4,6 +4,7 @@
 var LocalStrategy = require('passport-local').Strategy;
 //var TwitterStrategy = require('passport-twitter').Strategy;
 var FacebookStrategy = require('passport-facebook').Strategy;
+var HashStrategy = require('passport-hash').Strategy;
 //var GoogleStrategy = require('passport-google-oauth').OAuth2Strategy;
 //var FacebookTokenStrategy = require('passport-facebook-token').Strategy;
 
@@ -33,6 +34,33 @@ module.exports = function (passport) {
             done(err, user);
         });
     });
+
+    passport.use('local-hash', new HashStrategy(
+        function (hash, done) {
+            // asynchronous
+            process.nextTick(function () {
+                User.findOne({hash: hash}, function (err, user) {
+                    if (err) {
+                        return done(err);
+                    }
+                    console.log('local-hash');
+
+                    if (!user) {
+                        var newUser = new User();
+                        newUser.hash = hash;
+                        newUser.save(function (err) {
+                            if (err)
+                                throw err;
+                            console.log('local-hash');
+                            return done(null, newUser);
+                        });
+                    } else {
+                        return done(null, user);
+                    }
+                });
+            });
+        }
+    ));
 
     // =========================================================================
     // LOCAL LOGIN =============================================================

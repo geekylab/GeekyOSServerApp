@@ -20,44 +20,13 @@ module.exports = function (app, allPlugins, mongoose, appEvent, passport) {
         )
     });
 
-    app.post('/login', function (req, res, next) {
-        passport.authenticate('local-login', function (err, user, info) {
-            if (err) {
-                return next(err); // will generate a 500 error
-            }
-
-            if (!user) {
-                return res.status(401).json({stauts: false, messages: req.flash('loginMessage')});
-            }
-            return res.json({success: true, messages: 'authentication succeeded'});
-        })(req, res, next);
-    });
-
-    app.post('/signup', function (req, res, next) {
-        passport.authenticate('local-signup', function (err, user, info) {
-            console.log('signup');
-            if (err) {
-                return next(err); // will generate a 500 error
-            }
-
-            console.log(user, err);
-
-            if (!user) {
-                return res.status(500).json({stauts: false, messages: "maybe error"});
-            }
-            return res.json({success: true, messages: 'authentication succeeded'});
-        })(req, res, next);
-    });
-
-    // facebook -------------------------------
-    // send to facebook to do the authentication
-    app.get('/connect/facebook', passport.authorize('facebook', {scope: 'email'}));
-
-    app.get('/connect/facebook/callback',
-        passport.authorize('facebook', {
-            successRedirect: '/profile',
-            failureRedirect: '/'
-        }));
+    app.get('/login/:hash', passport.authenticate('local-hash', {
+            failureRedirect: 'http://menu.geekylab.net:8080/app/login',
+            failureFlash: true
+        }),
+        function (req, res) {
+            res.redirect('http://menu.geekylab.net:8080/app/index');
+        });
 
 
 };

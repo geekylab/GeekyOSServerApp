@@ -14,7 +14,9 @@
     "connect-flash": "~0.1.1",
     "express-session": "~1.9.1",
     "passport-facebook": "~1.0.3",
-    "connect-cache-manifest": "~0.2.0"
+    "connect-cache-manifest": "~0.2.0",
+    "passport-hash": "~0.3.0",
+    "passport-facebook-token": "~0.3.2"
   },
   "devDependencies": {},
   "engines": {

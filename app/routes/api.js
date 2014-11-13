@@ -9,12 +9,11 @@ var Ingredients = model.Ingredients;
 module.exports = function (app, plugins, mongoose, appEvent) {
 
     function isLoggedIn(req, res, next) {
-//        if (req.isAuthenticated())
-        return next();
-        //res.status(401);
-        //res.json({error: 'Authenticate error'});
+        if (req.isAuthenticated())
+            return next();
+        res.status(401);
+        res.json({error: 'Authenticate error'});
     }
-
 
     app.get('/plugins', function (req, res) {
         res.json(plugins);
@@ -38,7 +37,8 @@ module.exports = function (app, plugins, mongoose, appEvent) {
      * Store
      */
     app.get('/api/store', isLoggedIn, function (req, res) {
-//        var user = req.user;
+        var user = req.user;
+        console.log(user);
         Stores.find()
             .populate('users')
             .exec(function (err, rows) {

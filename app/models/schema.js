@@ -244,6 +244,7 @@ var Store = new mongoose.Schema({
 Store.index({location: "2dsphere"});
 
 var Users = mongoose.Schema({
+    hash: String,
     local: {
         username: String,
         password: String
