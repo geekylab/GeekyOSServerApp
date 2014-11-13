@@ -10,7 +10,7 @@ module.exports = function (app, plugins, mongoose, appEvent) {
 
     function isLoggedIn(req, res, next) {
 //        if (req.isAuthenticated())
-            return next();
+        return next();
         //res.status(401);
         //res.json({error: 'Authenticate error'});
     }
@@ -107,6 +107,7 @@ module.exports = function (app, plugins, mongoose, appEvent) {
             if (err) {
                 res.json(err);
             }
+            appEvent.emit("delete:store", req.params.id);
             res.json({message: 'Deleted!'});
         });
     });

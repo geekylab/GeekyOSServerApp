@@ -38,7 +38,7 @@ fs.readdir(pluginDir, function (err, files) {
             if (config.routes != undefined) {
                 if (config.enabled) {
                     if (fs.existsSync(packageDir + config.routes + '.js')) {
-                        require(packageDir + config.routes)(app, appEvent);
+                        require(packageDir + config.routes)(app, appEvent, mongoose);
                     } else {
                         console.log(packageDir + config.routes + '.js', 'not found');
                     }
