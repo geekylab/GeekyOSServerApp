@@ -38,7 +38,7 @@ module.exports = function (app, plugins, mongoose, appEvent) {
      */
     app.get('/api/store', isLoggedIn, function (req, res) {
         var user = req.user;
-        Stores.find()
+        Stores.findOne()
             .populate('users')
             .exec(function (err, rows) {
                 if (err)
@@ -55,7 +55,6 @@ module.exports = function (app, plugins, mongoose, appEvent) {
         if (lang == undefined) {
             lang = 'en';
         }
-
 
         Stores.findOne({_id: req.params.id})
             .populate('users')
