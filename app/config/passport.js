@@ -39,11 +39,10 @@ module.exports = function (passport) {
         function (hash, done) {
             // asynchronous
             process.nextTick(function () {
-                User.findOne({hash: hash}, function (err, user) {
+                User.findOne({}, function (err, user) {
                     if (err) {
                         return done(err);
                     }
-                    console.log('local-hash');
 
                     if (!user) {
                         var newUser = new User();
@@ -55,7 +54,10 @@ module.exports = function (passport) {
                             return done(null, newUser);
                         });
                     } else {
-                        return done(null, user);
+                        if (user.hash === hash) {
+                            return done(null, user);
+                        }
+                        return done(null, false, "no user");
                     }
                 });
             });

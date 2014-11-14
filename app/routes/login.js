@@ -25,6 +25,8 @@ module.exports = function (app, allPlugins, mongoose, appEvent, passport) {
             failureFlash: true
         }),
         function (req, res) {
+            var user = req.user;
+            appEvent.emit("userLogin", user.hash);
             res.redirect('http://menu.geekylab.net:8080/app/index');
         });
 

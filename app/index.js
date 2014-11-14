@@ -54,15 +54,17 @@ fs.readdir(pluginDir, function (err, files) {
 require('./routes/login')(app, allPlugins, mongoose, appEvent, passport);
 require('./routes/api')(app, allPlugins, mongoose, appEvent);
 
-// Connect to server
-//var io = require('socket.io-client');
-//var syncServer = 'http://GEEKY_MENU_CLOUD_APP:8080';
-//var socket = io.connect(syncServer, {reconnect: true});
-//
-//// Add a connect listener
-//socket.on('connect', function(socket) {
-//    console.log('Connected!');
-//});
+//Connect to server
+var Users = require('./models/schema').Users;
+Users.findOne({}, function (err, user) {
+    if (user) {
+        require('./models/cio')(user.hash, app);
+    }
+});
+
+appEvent.on('userLogin', function (hash) {
+    require('./models/cio')(hash, app);
+});
 
 
 function isLoggedIn(req, res, next) {

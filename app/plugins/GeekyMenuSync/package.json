@@ -9,5 +9,15 @@
             "link": "/sync"
         }
     ],
+    "settings": {
+        "cloud_username": {
+            "value": "",
+            "type": "text"
+        },
+        "cloud_password": {
+            "value": "",
+            "type": "password"
+        }
+    },
     "enabled": true
 }
