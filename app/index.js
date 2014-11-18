@@ -10,6 +10,9 @@ var flash = require('connect-flash');
 var expressSession = require('express-session');
 require('./config/passport')(passport);
 
+app.prototype.__proto__ = EventEmitter.prototype;
+EventEmitter.call(app);
+
 //app settings
 app.set('view engine', 'ejs');
 app.use(bodyParser.json({limit: '50mb'}));
@@ -54,13 +57,8 @@ fs.readdir(pluginDir, function (err, files) {
 require('./routes/login')(app, allPlugins, mongoose, appEvent, passport);
 require('./routes/api')(app, allPlugins, mongoose, appEvent);
 
-//socket if has user;
-var Users = require('./models/schema').Users;
-Users.findOne({}, function (err, user) {
-    if (user) {
-        var geekySocket = require('./models/cio')(app, user);
-    }
-});
+
+var geekySocket = require('./models/cio')(app);
 
 ////Connect to server
 //var Users = require('./models/schema').Users;
