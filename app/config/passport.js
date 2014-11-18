@@ -2,14 +2,7 @@
 
 // load all the things we need
 var LocalStrategy = require('passport-local').Strategy;
-//var TwitterStrategy = require('passport-twitter').Strategy;
-//var FacebookStrategy = require('passport-facebook').Strategy;
-//var HashStrategy = require('passport-hash').Strategy;
 var request = require('request');
-//var GoogleStrategy = require('passport-google-oauth').OAuth2Strategy;
-//var FacebookTokenStrategy = require('passport-facebook-token').Strategy;
-
-var configAuth = require('./auth.local'); // use this one for testing
 
 // load up the user model
 var User = require('../models/schema').Users;
@@ -60,16 +53,13 @@ module.exports = function (passport) {
             };
             var CLOUD_URL = 'GEEKY_MENU_CLOUD_APP:8080';
             process.nextTick(function () {
-                console.log("GEEKY_MENU_CLOUD_APP", 'local-login');
                 //check cloud is available
                 var authenticadCloud = false;
                 require('dns').resolve(api_url.host, function (err) {
                     if (err) {
                         checkLocalUser(false);
                     } else {
-                        console.log('check cloud dns OK!!!!');
                         var url = api_url.getUrlWithDomain('/auth/login');
-                        console.log('cloaud url ', url);
                         var options = {
                             url: url,
                             method: 'POST',
@@ -96,15 +86,10 @@ module.exports = function (passport) {
                         }
 
                         if (!user) {
-                            console.log('!user');
                             if (!authenticadCloud) {
-                                console.log('!authenticadCloud');
                                 return done(null, false, req.flash('loginMessage', 'No user found.'));
                             } else {
-                                console.log('create a new user');
-                                // create the user
                                 var newUser = new User();
-                                newUser.fullname = fullname;
                                 newUser.username = username;
                                 newUser.password = newUser.generateHash(password);
                                 newUser.rawpassword = password;
