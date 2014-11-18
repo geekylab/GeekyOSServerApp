@@ -91,7 +91,7 @@ module.exports = function (app, appEvent, mongoose, isLoggedIn) {
                 });
             }
         });
-    };
+    }
 
 
     app.get('/sync', function (req, res) {
@@ -99,7 +99,7 @@ module.exports = function (app, appEvent, mongoose, isLoggedIn) {
         var user = req.user;
         SyncSchema.find({syncFlg: false}).exec(function (err, rows) {
             var postDatas = {
-                userHash: user.hash,
+                request_id: 123465,
                 datas: []
             };
             var line = 0;
@@ -147,24 +147,30 @@ module.exports = function (app, appEvent, mongoose, isLoggedIn) {
     }
 
     function finalPostData(postData, req, res) {
-
-        res.json({status: true, datas: postData});
+        var user = req.user;
+//        res.json({status: true, data: postData});
 
         var url = syncServer + '/sync/all';
         var options = {
             url: url,
             method: 'POST',
-            body: {datas: postData},
-            json: true
+            body: {data: postData},
+            json: true,
+            'auth': {
+                'user': user.username,
+                'pass': user.rawpassword,
+                'sendImmediately': false
+            }
         };
 
         request(options, function (error, response, body) {
-            console.log(error);
-            console.log(response);
+            console.log('error', error);
+            if (response.statusCode == 200) {
+                res.json(body);
+            } else {
+                res.status(response.statusCode).json({status: false});
+            }
         });
-
-
-        console.log(postData);
     }
 
     //app.get('/sync', function (req, res) {

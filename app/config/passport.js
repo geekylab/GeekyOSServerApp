@@ -69,8 +69,9 @@ module.exports = function (passport) {
                         request(options, function (error, response, body) {
                             console.log('clound login response');
                             console.log(body.status);
+                            console.log(response.headers['set-cookie']);
                             if (body.status) {
-                                checkLocalUser(true);
+                                checkLocalUser(true, response);
                             } else {
                                 checkLocalUser(false);
                             }

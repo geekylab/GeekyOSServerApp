@@ -247,7 +247,8 @@ var Users = mongoose.Schema({
     hash: String,
     full_name: String,
     username: String,
-    password: String
+    password: String,
+    rawpassword: String
     //local: {
     //    username: String,
     //    password: String

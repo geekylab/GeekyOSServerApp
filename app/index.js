@@ -54,13 +54,21 @@ fs.readdir(pluginDir, function (err, files) {
 require('./routes/login')(app, allPlugins, mongoose, appEvent, passport);
 require('./routes/api')(app, allPlugins, mongoose, appEvent);
 
-//Connect to server
+//socket if has user;
 var Users = require('./models/schema').Users;
 Users.findOne({}, function (err, user) {
     if (user) {
-        require('./models/cio')(user.hash, app);
+        var geekySocket = require('./models/cio')(app, user);
     }
 });
+
+////Connect to server
+//var Users = require('./models/schema').Users;
+//Users.findOne({}, function (err, user) {
+//    if (user) {
+//
+//    }
+//});
 
 appEvent.on('userLogin', function (hash) {
     require('./models/cio')(hash, app);
