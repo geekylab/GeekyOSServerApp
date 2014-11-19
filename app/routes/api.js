@@ -254,15 +254,13 @@ module.exports = function (app, plugins, mongoose, appEvent) {
     });
 
     app.get('/api/item/:id', isLoggedIn, function (req, res) {
-        Items.findOne({_id: req.params.id})
-            .populate("ingredients")
-            .exec(function (err, item) {
-                if (err) {
-                    return res.json(err);
-                }
-                res.json(item);
+        Items.findOne({_id: req.params.id}, function (err, item) {
+            if (err) {
+                return res.json(err);
+            }
+            res.json(item);
 
-            });
+        });
     });
 
     app.put('/api/item/:id', isLoggedIn, function (req, res) {
@@ -279,7 +277,7 @@ module.exports = function (app, plugins, mongoose, appEvent) {
 
         if (req.body.ingredients != null) {
             req.body.ingredients.forEach(function (ingredient) {
-                updateItem.ingredients.push(ingredient._id);
+                updateItem.ingredients.push(ingredient);
             });
         }
 
@@ -335,7 +333,7 @@ module.exports = function (app, plugins, mongoose, appEvent) {
         item.ingredients = [];
         if (req.body.ingredients != undefined) {
             req.body.ingredients.forEach(function (ingredient) {
-                item.ingredients.push(ingredient._id);
+                item.ingredients.push(ingredient);
             });
         }
 

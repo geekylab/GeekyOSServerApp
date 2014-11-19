@@ -68,9 +68,6 @@ var Categories = new mongoose.Schema({
 });
 
 var Image = new mongoose.Schema({
-    path: {
-        type: String
-    },
     filename: {
         type: mongoose.Schema.Types.Mixed
     },
@@ -143,10 +140,7 @@ var Items = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Stores'
     }],
-    'ingredients': [{
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Ingredients'
-    }],
+    'ingredients': [Ingredients],
     'images': [Image],
     'categories': [{
         type: mongoose.Schema.Types.ObjectId,
