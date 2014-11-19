@@ -238,7 +238,8 @@ var Store = new mongoose.Schema({
     'created': {
         type: Date,
         default: Date.now
-    }
+    },
+    syncFlg: Boolean
 });
 
 Store.index({location: "2dsphere"});

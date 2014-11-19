@@ -1,6 +1,8 @@
 var model = require('../models/schema');
+var config = require('../config/auth.local.js');
 var nodeFs = require('node-fs');
 var multiparty = require('multiparty');
+var request = require('request');
 var Items = model.Items;
 var Orders = model.Orders;
 var Categories = model.Categories;
@@ -75,6 +77,7 @@ module.exports = function (app, plugins, mongoose, appEvent) {
     app.put('/api/store/:id', isLoggedIn, function (req, res) {
         var user = req.user;
         var updateData = {};
+        updateData.syncFlg = false;
         getStoreObjectFromReq(req, updateData);
         Stores.findOneAndUpdate({'_id': req.params.id}, {
                 $set: updateData
@@ -91,7 +94,7 @@ module.exports = function (app, plugins, mongoose, appEvent) {
     app.post('/api/store', isLoggedIn, function (req, res) {
         var user = req.user;
         var store = new Stores();
-//        store.users.push(user);
+        updateData.syncFlg = false;
         getStoreObjectFromReq(req, store);
         store.save(function (err) {
             if (err) {
@@ -363,7 +366,6 @@ module.exports = function (app, plugins, mongoose, appEvent) {
     /*
      Ingredients
      */
-
     app.get('/api/ingredients', isLoggedIn, function (req, res) {
         if (req.query.name != undefined && req.query.lang != undefined) {
             var conditions = {};
@@ -437,7 +439,6 @@ module.exports = function (app, plugins, mongoose, appEvent) {
     /**
      * Image upload
      */
-
     app.post('/api/upload', function (req, res, next) {
         // create a form to begin parsing
         var user = req.user;
@@ -480,32 +481,6 @@ module.exports = function (app, plugins, mongoose, appEvent) {
                     console.log('saved img to mongo');
                 });
             });
-
-            //image = {};
-            //image.filename = part.filename;
-            //image.size = 0;
-            //
-            //var bufs = [];
-            //part.on('data', function (buf) {
-            //    image.size += buf.length;
-            //    bufs.push(buf);
-            //});
-            //
-            //part.on('end', function (imageBinary) {
-            //    image2.data = Buffer.concat(bufs);;
-            //    image2.save(function (err, a) {
-            //        if (err) throw err;
-            //        console.log('saved img to mongo');
-            //    });
-            //});
-            //
-            //var userImageDir = __dirname + '/../assets/uploads/' + user._id;
-            //if (!nodeFs.existsSync(userImageDir)) {
-            //    nodeFs.mkdirSync(userImageDir, 0777, true);
-            //}
-            //
-            //var out = nodeFs.createWriteStream(userImageDir + '/' + part.filename);
-            //part.pipe(out);
         });
 
         // parse the form
@@ -521,6 +496,44 @@ module.exports = function (app, plugins, mongoose, appEvent) {
             res.write(doc.data);
             res.end();
         });
+    });
+
+    /**
+     * Sync cloud
+     */
+    app.post('/api/sync/store/:store_id?', function (req, res, next) {
+        var user = req.user;
+        var store_id = req.params.store_id;
+        var cloudUrl = config.cloud_api_host + '/sync/store';
+        if (store_id) {
+            Stores.findOne({_id: store_id}, function (err, store) {
+                var options = {
+                    url: cloudUrl + '/' + store._id,
+                    method: 'POST',
+                    body: {store: store},
+                    json: true,
+                    'auth': {
+                        'user': user.username,
+                        'pass': user.rawpassword,
+                        'sendImmediately': false
+                    }
+                };
+                request(options, function (error, response, body) {
+                    if (response.statusCode == 200) {
+                        store.syncFlg = true;
+                        store.save(function (err, store) {
+                            console.log('save');
+                            return res.json(body);
+                        });
+                    } else {
+                        var statusCode = response.statusCode || 500;
+                        return res.status(statusCode).json({status: false});
+                    }
+                });
+            });
+        } else {
+            return res.status(500).json({status: false, message: 'invalid'});
+        }
     });
 
 };
