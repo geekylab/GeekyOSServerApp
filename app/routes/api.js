@@ -265,6 +265,21 @@ module.exports = function (app, plugins, mongoose, appEvent) {
 
     app.put('/api/item/:id', isLoggedIn, function (req, res) {
 
+        var doUpdateItem = function (updateItem) {
+            Items.findByIdAndUpdate(req.params.id, {
+                    $set: updateItem
+                },
+                {upsert: true},
+                function (err, obj) {
+                    if (err) {
+                        console.log(err);
+                        return res.json(err);
+                    }
+                    appEvent.emit("update:item", obj);
+                    res.json(obj);
+                });
+        };
+
         var updateItem = {};
         updateItem.name = req.body.name;
         updateItem.desc = req.body.desc;
@@ -281,32 +296,27 @@ module.exports = function (app, plugins, mongoose, appEvent) {
             });
         }
 
+        Stores.findOne({}, function (err, store) {
+            updateItem.store = store;
+            doUpdateItem(updateItem);
+        });
 
-        Items.findByIdAndUpdate(req.params.id, {
-                $set: updateItem
-                //{
-                //    name: req.body.name,
-                //    desc: req.body.desc,
-                //    price: req.body.price,
-                //    time: req.body.time,
-                //    images: req.body.images,
-                //    categories: req.body.categories,
-                //    ingredients: req.body.ingredients
-                //}
-            },
-            {upsert: true},
-            function (err, obj) {
-                if (err) {
-                    console.log(err);
-                    return res.json(err);
-                }
-                appEvent.emit("update:item", obj);
-                res.json(obj);
-            });
     });
 
 
     app.post('/api/item', isLoggedIn, function (req, res) {
+
+        var doSaveItem = function (item) {
+            item.save(function (err) {
+                if (err) {
+                    return res.json(err);
+                }
+                appEvent.emit("save:item", item);
+                res.json(item);
+            });
+        };
+
+        var user = req.user;
 
         var item = new Items();
         if (req.body.name != undefined)
@@ -327,9 +337,6 @@ module.exports = function (app, plugins, mongoose, appEvent) {
         if (req.body.categories != undefined)
             item.categories = req.body.categories;
 
-        if (req.body.stores != undefined)
-            item.stores = req.body.stores;
-
         item.ingredients = [];
         if (req.body.ingredients != undefined) {
             req.body.ingredients.forEach(function (ingredient) {
@@ -337,12 +344,9 @@ module.exports = function (app, plugins, mongoose, appEvent) {
             });
         }
 
-        item.save(function (err) {
-            if (err) {
-                return res.json(err);
-            }
-            appEvent.emit("save:item", item);
-            res.json(item);
+        Stores.findOne({}, function (err, store) {
+            item.store = store;
+            doSaveItem(item);
         });
     });
 

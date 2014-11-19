@@ -136,10 +136,10 @@ var Items = new mongoose.Schema({
         type: Number,
         default: 0
     },
-    stores: [{
+    store: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Stores'
-    }],
+    },
     'ingredients': [Ingredients],
     'images': [Image],
     'categories': [{
