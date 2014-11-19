@@ -8,6 +8,8 @@ var appEvent = new EventEmitter();
 var passport = require('passport');
 var flash = require('connect-flash');
 var expressSession = require('express-session');
+var MongoStore = require('connect-mongo')(expressSession);
+var authConfig = require('./config/auth.local.js');
 require('./config/passport')(passport);
 
 app.prototype.__proto__ = EventEmitter.prototype;
@@ -18,14 +20,19 @@ app.set('view engine', 'ejs');
 app.use(bodyParser.json({limit: '50mb'}));
 app.use(bodyParser.urlencoded({extended: false, limit: '50mb'}));
 
+var myMongoStore = new MongoStore({
+    db: mongoose.connection.db
+});
+
 // required for passport
 app.use(expressSession({
-        secret: 'lfsjdlfkjsdlfjsldkjfsblablablabla',
-        proxy: true,
+        secret: authConfig.secret_key,
         resave: true,
-        saveUninitialized: true
+        saveUninitialized: true,
+//        cookie: {},
+        store: myMongoStore
     })
-); // session secret
+);
 app.use(passport.initialize());
 app.use(passport.session());
 app.use(flash());

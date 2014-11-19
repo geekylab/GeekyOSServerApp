@@ -1,10 +1,13 @@
 var model = require('../models/schema');
+var nodeFs = require('node-fs');
+var multiparty = require('multiparty');
 var Items = model.Items;
 var Orders = model.Orders;
 var Categories = model.Categories;
 var Tables = model.Tables;
 var Stores = model.Stores;
 var Ingredients = model.Ingredients;
+var ImageStorage = model.ImageStorage;
 
 module.exports = function (app, plugins, mongoose, appEvent) {
 
@@ -78,7 +81,7 @@ module.exports = function (app, plugins, mongoose, appEvent) {
             },
             function (err, obj) {
                 if (err) {
-                    res.json(err);
+                    return res.json(err);
                 }
                 appEvent.emit("update:store", obj);
                 res.json(obj);
@@ -426,8 +429,96 @@ module.exports = function (app, plugins, mongoose, appEvent) {
                     res.json(obj);
                 }
             });
-
     });
 
+
+    /**
+     * Image upload
+     */
+
+    app.post('/api/upload', function (req, res, next) {
+        // create a form to begin parsing
+        var user = req.user;
+        var form = new multiparty.Form();
+        var image;
+        var image2 = new ImageStorage();
+        var title = "test";
+        form.on('error', next);
+        form.on('close', function () {
+            if (image2.filename != undefined) {
+                image2.path = '/api/image/' + image2._id;
+                res.json(image2);
+            }
+//            res.send(format('\nuploaded %s (%d Kb) as %s', image.filename, image.size / 1024 | 0, title));
+        });
+
+        // listen on field event for title
+        form.on('field', function (name, val) {
+            if (name !== 'title') return;
+            title = val;
+        });
+
+        // listen on part event for image file
+        form.on('part', function (part) {
+            if (!part.filename) return;
+            if (part.name !== 'file') return part.resume();
+            image2.contentType = part.headers['content-type'] || 'image/png';
+            image2.filename = part.filename;
+            image2.user = user._id;
+            image2.data = "";
+            var bufs = [];
+            part.on('data', function (buf) {
+                bufs.push(buf);
+            });
+
+            part.on('end', function (imageBinary) {
+                image2.data = Buffer.concat(bufs);
+                image2.save(function (err, a) {
+                    if (err) throw err;
+                    console.log('saved img to mongo');
+                });
+            });
+
+            //image = {};
+            //image.filename = part.filename;
+            //image.size = 0;
+            //
+            //var bufs = [];
+            //part.on('data', function (buf) {
+            //    image.size += buf.length;
+            //    bufs.push(buf);
+            //});
+            //
+            //part.on('end', function (imageBinary) {
+            //    image2.data = Buffer.concat(bufs);;
+            //    image2.save(function (err, a) {
+            //        if (err) throw err;
+            //        console.log('saved img to mongo');
+            //    });
+            //});
+            //
+            //var userImageDir = __dirname + '/../assets/uploads/' + user._id;
+            //if (!nodeFs.existsSync(userImageDir)) {
+            //    nodeFs.mkdirSync(userImageDir, 0777, true);
+            //}
+            //
+            //var out = nodeFs.createWriteStream(userImageDir + '/' + part.filename);
+            //part.pipe(out);
+        });
+
+        // parse the form
+        form.parse(req);
+    });
+
+
+    app.get('/api/image/:id', function (req, res, next) {
+        var user = req.user;
+        ImageStorage.findById(req.params.id, function (err, doc) {
+            if (err) return next(err);
+            res.contentType(doc.contentType);
+            res.write(doc.data);
+            res.end();
+        });
+    });
 
 };

@@ -84,6 +84,19 @@ var Image = new mongoose.Schema({
     }
 });
 
+
+var ImageStorage = new mongoose.Schema({
+    data: Buffer,
+    contentType: String,
+    filename: String,
+    syncFlg: Boolean,
+    user: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Users'
+    }
+});
+
+
 var Ingredients = mongoose.Schema({
     text: {
         type: mongoose.Schema.Types.Mixed,
@@ -220,15 +233,8 @@ var Store = new mongoose.Schema({
         type: String
     }],
     'images': [{
-        path: {
-            type: String
-        },
-        filename: {
-            type: mongoose.Schema.Types.Mixed
-        },
-        desc: {
-            type: mongoose.Schema.Types.Mixed
-        }
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'ImageStorage'
     }],
     'opts': [{
         type: String,
@@ -300,6 +306,7 @@ Users.methods.validPassword = function (password) {
 };
 
 exports.Orders = db.model('Orders', Orders);
+exports.ImageStorage = db.model('ImageStorage', ImageStorage);
 exports.Items = db.model('Items', Items);
 exports.Categories = db.model('Categories', Categories);
 exports.Tables = db.model('Tables', Tables);
