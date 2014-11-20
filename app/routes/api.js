@@ -300,8 +300,10 @@ module.exports = function (app, plugins, mongoose, appEvent) {
         }
 
         Stores.findOne({}, function (err, store) {
-            updateItem.store = store;
-            doUpdateItem(updateItem);
+            if (store) {
+                updateItem.store = store._id;
+                doUpdateItem(updateItem);
+            }
         });
 
     });
@@ -535,5 +537,40 @@ module.exports = function (app, plugins, mongoose, appEvent) {
             return res.status(500).json({status: false, message: 'invalid'});
         }
     });
+
+    app.post('/api/sync/item/:item_id?', function (req, res, next) {
+        var user = req.user;
+        var store_id = req.params.item_id;
+        var cloudUrl = config.cloud_api_host + '/sync/item';
+        if (store_id) {
+            Items.findOne({_id: store_id}, function (err, item) {
+                var options = {
+                    url: cloudUrl + '/' + item._id,
+                    method: 'POST',
+                    body: {item: item},
+                    json: true,
+                    'auth': {
+                        'user': user.username,
+                        'pass': user.rawpassword,
+                        'sendImmediately': false
+                    }
+                };
+                request(options, function (error, response, body) {
+                    if (response.statusCode == 200) {
+                        item.syncFlg = true;
+                        item.save(function (err, store) {
+                            return res.json(body);
+                        });
+                    } else {
+                        var statusCode = response.statusCode || 500;
+                        return res.status(statusCode).json({status: false});
+                    }
+                });
+            });
+        } else {
+            return res.status(500).json({status: false, message: 'invalid'});
+        }
+    });
+
 
 };

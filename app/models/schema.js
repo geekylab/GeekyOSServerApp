@@ -149,7 +149,8 @@ var Items = new mongoose.Schema({
     created: {
         type: Date,
         default: Date.now
-    }
+    },
+    syncFlg: Boolean
 });
 
 var Tables = new mongoose.Schema({
