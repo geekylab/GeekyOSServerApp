@@ -94,7 +94,7 @@ module.exports = function (app, plugins, mongoose, appEvent) {
     app.post('/api/store', isLoggedIn, function (req, res) {
         var user = req.user;
         var store = new Stores();
-        updateData.syncFlg = false;
+        store.syncFlg = false;
         getStoreObjectFromReq(req, store);
         store.save(function (err) {
             if (err) {
