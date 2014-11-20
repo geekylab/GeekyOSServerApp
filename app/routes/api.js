@@ -508,33 +508,38 @@ module.exports = function (app, plugins, mongoose, appEvent) {
         var store_id = req.params.store_id;
         var cloudUrl = config.cloud_api_host + '/sync/store';
         if (store_id) {
-            Stores.findOne({_id: store_id}, function (err, store) {
-                var options = {
-                    url: cloudUrl + '/' + store._id,
-                    method: 'POST',
-                    body: {store: store},
-                    json: true,
-                    'auth': {
-                        'user': user.username,
-                        'pass': user.rawpassword,
-                        'sendImmediately': false
-                    }
-                };
-                request(options, function (error, response, body) {
-                    if (response.statusCode == 200) {
-                        store.syncFlg = true;
-                        store.save(function (err, store) {
-                            console.log('save');
-                            return res.json(body);
-                        });
-                    } else {
-                        var statusCode = response.statusCode || 500;
-                        return res.status(statusCode).json({status: false});
-                    }
+            Stores.findOne({_id: store_id})
+                .populate('images')
+                .exec(function (err, store) {
+                    console.log('store', err, store);
+                    var options = {
+                        url: cloudUrl + '/' + store._id,
+                        method: 'POST',
+                        body: {
+                            store: store
+                        },
+                        json: true,
+                        'auth': {
+                            'user': user.username,
+                            'pass': user.rawpassword,
+                            'sendImmediately': false
+                        }
+                    };
+                    request(options, function (error, response, body) {
+                        if (response.statusCode == 200) {
+                            store.syncFlg = true;
+                            store.save(function (err, store) {
+                                console.log('save');
+                                return res.json(body);
+                            });
+                        } else {
+                            var statusCode = response.statusCode || 500;
+                            return res.status(statusCode).json({status: false});
+                        }
+                    });
                 });
-            });
         } else {
-            return res.status(500).json({status: false, message: 'invalid'});
+            return res.status(400).json({status: false, message: 'invalid'});
         }
     });
 
