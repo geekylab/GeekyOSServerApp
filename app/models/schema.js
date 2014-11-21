@@ -68,6 +68,10 @@ var Categories = new mongoose.Schema({
 });
 
 var Image = new mongoose.Schema({
+    image: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'ImageStorage'
+    },
     filename: {
         type: mongoose.Schema.Types.Mixed
     },

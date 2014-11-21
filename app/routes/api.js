@@ -249,21 +249,25 @@ module.exports = function (app, plugins, mongoose, appEvent) {
      */
 
     app.get('/api/item', isLoggedIn, function (req, res) {
-        Items.find({}, function (err, rows) {
-            if (err)
-                res.json(err);
-            res.json(rows);
-        });
+        Items.find({})
+            .populate('images')
+            .exec(function (err, rows) {
+                if (err)
+                    res.json(err);
+                res.json(rows);
+            });
     });
 
     app.get('/api/item/:id', isLoggedIn, function (req, res) {
-        Items.findOne({_id: req.params.id}, function (err, item) {
-            if (err) {
-                return res.json(err);
-            }
-            res.json(item);
+        Items.findOne({_id: req.params.id})
+            .populate('images')
+            .exec(function (err, item) {
+                if (err) {
+                    return res.json(err);
+                }
+                res.json(item);
 
-        });
+            });
     });
 
     app.put('/api/item/:id', isLoggedIn, function (req, res) {
@@ -292,6 +296,7 @@ module.exports = function (app, plugins, mongoose, appEvent) {
         updateItem.categories = req.body.categories;
         updateItem.stores = req.body.stores;
         updateItem.ingredients = [];
+        updateItem.syncFlg = false;
 
         if (req.body.ingredients != null) {
             req.body.ingredients.forEach(function (ingredient) {
@@ -312,6 +317,7 @@ module.exports = function (app, plugins, mongoose, appEvent) {
     app.post('/api/item', isLoggedIn, function (req, res) {
 
         var doSaveItem = function (item) {
+            item.syncFlg = false;
             item.save(function (err) {
                 if (err) {
                     return res.json(err);
@@ -548,30 +554,33 @@ module.exports = function (app, plugins, mongoose, appEvent) {
         var store_id = req.params.item_id;
         var cloudUrl = config.cloud_api_host + '/sync/item';
         if (store_id) {
-            Items.findOne({_id: store_id}, function (err, item) {
-                var options = {
-                    url: cloudUrl + '/' + item._id,
-                    method: 'POST',
-                    body: {item: item},
-                    json: true,
-                    'auth': {
-                        'user': user.username,
-                        'pass': user.rawpassword,
-                        'sendImmediately': false
-                    }
-                };
-                request(options, function (error, response, body) {
-                    if (response.statusCode == 200) {
-                        item.syncFlg = true;
-                        item.save(function (err, store) {
-                            return res.json(body);
-                        });
-                    } else {
-                        var statusCode = response.statusCode || 500;
-                        return res.status(statusCode).json({status: false});
-                    }
+            Items.findOne({_id: store_id})
+                .populate('images images.image')
+                .exec(function (err, item) {
+                    console.log(item.images);
+                    var options = {
+                        url: cloudUrl + '/' + item._id,
+                        method: 'POST',
+                        body: {item: item},
+                        json: true,
+                        'auth': {
+                            'user': user.username,
+                            'pass': user.rawpassword,
+                            'sendImmediately': false
+                        }
+                    };
+                    request(options, function (error, response, body) {
+                        if (response.statusCode == 200) {
+                            item.syncFlg = true;
+                            item.save(function (err, store) {
+                                return res.json(body);
+                            });
+                        } else {
+                            var statusCode = response.statusCode || 500;
+                            return res.status(statusCode).json({status: false});
+                        }
+                    });
                 });
-            });
         } else {
             return res.status(500).json({status: false, message: 'invalid'});
         }
