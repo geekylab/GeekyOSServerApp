@@ -292,6 +292,7 @@ module.exports = function (app, plugins, mongoose, appEvent) {
         updateItem.categories = req.body.categories;
         updateItem.stores = req.body.stores;
         updateItem.ingredients = [];
+        updateItem.syncFlg = false;
 
         if (req.body.ingredients != null) {
             req.body.ingredients.forEach(function (ingredient) {
@@ -348,6 +349,7 @@ module.exports = function (app, plugins, mongoose, appEvent) {
                 item.ingredients.push(ingredient);
             });
         }
+        item.syncFlg = false;
 
         Stores.findOne({}, function (err, store) {
             item.store = store;
@@ -549,6 +551,7 @@ module.exports = function (app, plugins, mongoose, appEvent) {
         var cloudUrl = config.cloud_api_host + '/sync/item';
         if (store_id) {
             Items.findOne({_id: store_id}, function (err, item) {
+                console.log(item);
                 var options = {
                     url: cloudUrl + '/' + item._id,
                     method: 'POST',
