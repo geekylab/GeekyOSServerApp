@@ -61,6 +61,11 @@ var Categories = new mongoose.Schema({
         type: mongoose.Schema.Types.Mixed,
         index: true
     },
+    syncFlg: Boolean,
+    store: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Stores'
+    },
     created: {
         type: Date,
         default: Date.now

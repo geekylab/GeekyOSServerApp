@@ -202,36 +202,86 @@ module.exports = function (app, plugins, mongoose, appEvent) {
     });
 
     app.put('/api/category/:id', isLoggedIn, function (req, res) {
-        Categories.findByIdAndUpdate(req.params.id, {
-                $set: {
-                    name: req.body.name
-                }
-            },
-            {upsert: true},
-            function (err, obj) {
-                if (err) {
-                    console.log(err);
-                    res.json(err);
-                }
-                res.json(obj);
-            });
+
+        var doUpdateCategory = function (updateCategory) {
+            Categories.findByIdAndUpdate(req.params.id, {
+                    $set: updateCategory
+                },
+                {upsert: true},
+                function (err, obj) {
+                    if (err) {
+                        console.log(err);
+                        return res.json(err);
+                    }
+                    res.json(obj);
+                });
+        };
+
+
+        var updateCategory     = {};
+        updateCategory.name    = req.body.name;
+        updateCategory.syncFlg = false;
+
+        Stores.findOne({}, function (err, store) {
+            if (store) {
+                updateCategory.store = store._id;
+                doUpdateCategory(updateCategory);
+            }
+        });
+
+
+
+        // Categories.findByIdAndUpdate(req.params.id, {
+        //         $set: {
+        //             name: req.body.name
+        //         }
+        //     },
+        //     {upsert: true},
+        //     function (err, obj) {
+        //         if (err) {
+        //             console.log(err);
+        //             res.json(err);
+        //         }
+        //         res.json(obj);
+        //     });
     });
 
 
     app.post('/api/category', isLoggedIn, function (req, res) {
 
-        console.info("post data", req.body);
+        var doSaveCategory = function (updateCategory) {
+            updateCategory.syncFlg = false;
+            updateCategory.save(function (err) {
+                if (err) {
+                    return res.json(err);
+                }
+                res.json(updateCategory);
+            });
+        };
 
-        var category = new Categories();
+        // var category = new Categories();
+        // if (req.body.name != undefined)
+        //     category.name = req.body.name;
+        // category.save(function (err) {
+        //     if (err) {
+        //         res.json(err);
+        //     }
+        //     console.info("insert item", category);
+        //     res.json(category);
+        // });
+
+
+        var updateCategory     = new Categories();
         if (req.body.name != undefined)
-            category.name = req.body.name;
-        category.save(function (err) {
-            if (err) {
-                res.json(err);
+            updateCategory.name = req.body.name;
+
+        Stores.findOne({}, function (err, store) {
+            if (store) {
+                updateCategory.store = store._id;
+                doSaveCategory(updateCategory);
             }
-            console.info("insert item", category);
-            res.json(category);
         });
+
     });
 
     app.delete('/api/category/:id', isLoggedIn, function (req, res) {
@@ -282,7 +332,6 @@ module.exports = function (app, plugins, mongoose, appEvent) {
                         console.log(err);
                         return res.json(err);
                     }
-                    appEvent.emit("update:item", obj);
                     res.json(obj);
                 });
         };
@@ -549,6 +598,51 @@ module.exports = function (app, plugins, mongoose, appEvent) {
         }
     });
 
+
+    app.post('/api/sync/category/:category_id?', function (req, res, next) {
+        var user = req.user;
+        var category_id = req.params.category_id;
+        var cloudUrl = config.cloud_api_host + '/sync/category';
+        if (category_id) {
+            Categories.findOne({_id: category_id})
+//                .populate('images images.image')
+                .exec(function (err, category) {
+                    console.log(category);
+                    if (category) {
+                        var options = {
+                            url: cloudUrl + '/' + category._id,
+                            method: 'POST',
+                            body: {category: category},
+                            json: true,
+                            'auth': {
+                                'user': user.username,
+                                'pass': user.rawpassword,
+                                'sendImmediately': false
+                            }
+                        };
+                        request(options, function (error, response, body) {
+                            if (response && response.statusCode == 200) {
+                                category.syncFlg = true;
+                                category.save(function (err, store) {
+                                    return res.json(body);
+                                });
+                            } else {
+                                var statusCode = response.statusCode || 400;
+                                var message = body.message || '';
+                                return res.status(statusCode).json({status: false, message: message});
+                            }
+                        });
+                    } else {
+                        return res.status(400).json({status: false, message: 'category not found'});                        
+                    }
+                });
+        } else {
+            return res.status(400).json({status: false, message: 'invalid'});
+        }
+    });
+
+
+
     app.post('/api/sync/item/:item_id?', function (req, res, next) {
         var user = req.user;
         var store_id = req.params.item_id;
@@ -576,13 +670,14 @@ module.exports = function (app, plugins, mongoose, appEvent) {
                                 return res.json(body);
                             });
                         } else {
-                            var statusCode = response.statusCode || 500;
-                            return res.status(statusCode).json({status: false});
+                            var statusCode = response.statusCode || 400;
+                            var message = body.message || '';
+                            return res.status(statusCode).json({status: false, message: message});
                         }
                     });
                 });
         } else {
-            return res.status(500).json({status: false, message: 'invalid'});
+            return res.status(400).json({status: false, message: 'invalid'});
         }
     });
 
