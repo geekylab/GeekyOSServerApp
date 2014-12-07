@@ -20,18 +20,17 @@ function socket(app, user) {
 function GeekySocket(app) {
     //EventEmitter.call(this);
     this.socketIoServer = null;
-    this.clients = {
-        admin: []
-    };
     var self = this;
 
     app.on('listen', function (server) {
         self.socketIoServer = socketio.listen(server);
         self.socketIoServer.of("/admin")
             .on('connection', function (socket) {
-                console.log("connect in admin");
+                console.log("connect in admin", socket.id);
                 socket.join("admin");
-                self.clients["admin"].push(socket);
+                socket.on('disconnect', function () {
+                    console.log("disconnect", this.id);
+                });
             });
     });
 
@@ -124,7 +123,7 @@ GeekySocket.prototype.onnotice = function (data) {
 
 GeekySocket.prototype.on_check_table_hash = function (data, fn) {
     if (this.socketIoServer) {
-        this.socketIoServer.of('admin').in('admin').emit('check_table_hash', data);
+        this.socketIoServer.of('admin').emit('check_table_hash', data);
     }
     if (fn)
         fn("johna");
