@@ -88,6 +88,7 @@ GeekySocket.prototype.subEvents = function () {
         on(socket, 'disconnect', bind(this, 'ondisconnect')),
         on(socket, 'token_error', bind(this, 'ontoken_error')),
         on(socket, 'notice', bind(this, 'onnotice')),
+        on(socket, 'check_table_hash', bind(this, 'on_check_table_hash')),
     ];
 };
 
@@ -113,6 +114,12 @@ GeekySocket.prototype.ondisconnect = function () {
 
 GeekySocket.prototype.onnotice = function (data) {
     console.log('onnotice', data);
+};
+
+GeekySocket.prototype.on_check_table_hash = function (data, fn) {
+    console.log('on_check_table_hash', data);
+    if (fn)
+        fn("johna");
 };
 
 
