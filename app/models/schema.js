@@ -187,6 +187,10 @@ var Store = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Users'
     }],
+    'cloud_id': {
+        type:String,
+        index:true
+    },
     'store_name': {
         type: mongoose.Schema.Types.Mixed,
         index: true
@@ -244,7 +248,10 @@ var Store = new mongoose.Schema({
         type: String,
         index: true
     }],
-    'tables': [Tables],
+    'tables': [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Tables'
+    }],
     'created': {
         type: Date,
         default: Date.now

@@ -122,9 +122,23 @@ GeekySocket.prototype.onnotice = function (data) {
 };
 
 GeekySocket.prototype.on_check_table_hash = function (data, fn) {
+    if (data.table_token) {
+
+
+
+
+    }
+
+
+
     if (this.socketIoServer) {
         this.socketIoServer.of('admin').emit('check_table_hash', data);
     }
+
+
+
+
+
     if (fn)
         fn("johna");
 };

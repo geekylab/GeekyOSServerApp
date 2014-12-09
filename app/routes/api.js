@@ -3,6 +3,9 @@ var config = require('../config/auth.local.js');
 var nodeFs = require('node-fs');
 var multiparty = require('multiparty');
 var request = require('request');
+var async = require('async');
+var qr = require('qr-image');
+
 var Items = model.Items;
 var Orders = model.Orders;
 var Categories = model.Categories;
@@ -45,6 +48,7 @@ module.exports = function (app, plugins, mongoose, appEvent) {
         var user = req.user;
         Stores.findOne()
             .populate('users')
+            .populate('tables')
             .exec(function (err, rows) {
                 if (err)
                     return res.json(err);
@@ -63,6 +67,7 @@ module.exports = function (app, plugins, mongoose, appEvent) {
 
         Stores.findOne({_id: req.params.id})
             .populate('users')
+            .populate('tables')
             .exec(function (err, store) {
                 //if (err) return handleError(err);
                 //console.log(person);
@@ -77,32 +82,51 @@ module.exports = function (app, plugins, mongoose, appEvent) {
     app.put('/api/store/:id', isLoggedIn, function (req, res) {
         var user = req.user;
         var updateData = {};
+
+        var updateTable = function (updateData) {
+            Stores.findOneAndUpdate({'_id': req.params.id}, {$set: updateData})
+                .populate('user')
+                .populate('tables')
+                .exec(function (err, obj) {
+                    if (err) {
+                        return res.json(err.message);
+                    }
+                    return res.json(obj);
+                });
+        };
+
         updateData.syncFlg = false;
-        getStoreObjectFromReq(req, updateData);
-        Stores.findOneAndUpdate({'_id': req.params.id}, {
-                $set: updateData
-            },
-            function (err, obj) {
-                if (err) {
-                    return res.json(err);
-                }
-                appEvent.emit("update:store", obj);
-                res.json(obj);
-            });
+        getStoreObjectFromReq(req, updateData, updateTable);
+
     });
 
     app.post('/api/store', isLoggedIn, function (req, res) {
         var user = req.user;
+        var saveTable = function (updateData) {
+            store.save(function (err) {
+                if (err) {
+                    res.json(err);
+                }
+
+                Stores.findOne({_id: store._id})
+                    .populate('users')
+                    .populate('tables')
+                    .exec(function (err, store) {
+                        //if (err) return handleError(err);
+                        //console.log(person);
+                        if (err)
+                            return res.json(err);
+
+                        res.json(store);
+
+                    });
+            });
+        };
+
+
         var store = new Stores();
         store.syncFlg = false;
-        getStoreObjectFromReq(req, store);
-        store.save(function (err) {
-            if (err) {
-                res.json(err);
-            }
-            appEvent.emit("save:store", store);
-            res.json(store);
-        });
+        getStoreObjectFromReq(req, store, saveTable);
     });
 
     app.delete('/api/store/:id', isLoggedIn, function (req, res) {
@@ -116,7 +140,7 @@ module.exports = function (app, plugins, mongoose, appEvent) {
         });
     });
 
-    function getStoreObjectFromReq(req, updateData) {
+    function getStoreObjectFromReq(req, updateData, fn) {
         if (req.body.store_name != undefined)
             updateData.store_name = req.body.store_name;
 
@@ -171,10 +195,55 @@ module.exports = function (app, plugins, mongoose, appEvent) {
         if (req.body.opts != undefined)
             updateData.opts = req.body.opts;
 
-        if (req.body.tables != undefined)
-            updateData.tables = req.body.tables;
+        async.series([function (asyncCallback) {
+            if (req.body.tables != undefined) {
+                updateData.tables = [];
+                async.eachSeries(req.body.tables, function (table, next) {
 
-        return updateData;
+                    if (table._id) {
+                        Tables.findById(table._id, function (err, row_table) {
+                            if (!row_table) {
+                                row_table = new Tables();
+                            }
+
+                            row_table.table_number = table.table_number;
+                            row_table.table_status = table.table_status;
+                            row_table.limited_number = table.limited_number;
+                            row_table.save(function (err, row) {
+                                if (err) {
+                                    next(err);
+                                } else {
+                                    updateData.tables.push(row._id);
+                                    next();
+                                }
+                            });
+                        });
+                    } else {
+                        //insert
+                        var row_table = new Tables();
+                        row_table.table_number = table.table_number;
+                        row_table.table_status = table.table_status;
+                        row_table.limited_number = table.limited_number;
+                        row_table.save(function (err, row) {
+                            if (err) {
+                                next(err);
+                            } else {
+                                updateData.tables.push(row._id);
+                                next();
+                            }
+                        });
+                    }
+                }, function (err) {
+                    asyncCallback();
+                });
+            } else {
+                asyncCallback();
+            }
+        }], function () {
+            console.log(req.body.tables);
+            fn(updateData);
+        });
+
     }
 
     /**
@@ -218,8 +287,8 @@ module.exports = function (app, plugins, mongoose, appEvent) {
         };
 
 
-        var updateCategory     = {};
-        updateCategory.name    = req.body.name;
+        var updateCategory = {};
+        updateCategory.name = req.body.name;
         updateCategory.syncFlg = false;
 
         Stores.findOne({}, function (err, store) {
@@ -228,7 +297,6 @@ module.exports = function (app, plugins, mongoose, appEvent) {
                 doUpdateCategory(updateCategory);
             }
         });
-
 
 
         // Categories.findByIdAndUpdate(req.params.id, {
@@ -271,7 +339,7 @@ module.exports = function (app, plugins, mongoose, appEvent) {
         // });
 
 
-        var updateCategory     = new Categories();
+        var updateCategory = new Categories();
         if (req.body.name != undefined)
             updateCategory.name = req.body.name;
 
@@ -555,6 +623,30 @@ module.exports = function (app, plugins, mongoose, appEvent) {
         });
     });
 
+    app.get('/api/table_qr/:table_id', function (req, res, next) {
+        if (req.params.table_id) {
+            Stores.findOne({}).populate({
+                path: 'tables',
+                match: {_id: req.params.table_id},
+                select: '_id'
+            })
+                .exec(function (err, store) {
+                    if (err) {
+
+                    } else {
+                        if (store && store.tables.length > 0) {
+                            var table_id = store.tables[0]._id;
+                            var url = config.cloud_api_url + "/_store/" + store.cloud_id + "/" + table_id;
+                            var code = qr.image(url, {type: 'svg'});
+                            res.type('svg');
+                            code.pipe(res);
+                        }
+                    }
+                });
+        }
+
+    });
+
     /**
      * Sync cloud
      */
@@ -583,6 +675,7 @@ module.exports = function (app, plugins, mongoose, appEvent) {
                     request(options, function (error, response, body) {
                         if (response.statusCode == 200) {
                             store.syncFlg = true;
+                            store.cloud_id = body.store._id;
                             store.save(function (err, store) {
                                 console.log('save');
                                 return res.json(body);
@@ -633,14 +726,13 @@ module.exports = function (app, plugins, mongoose, appEvent) {
                             }
                         });
                     } else {
-                        return res.status(400).json({status: false, message: 'category not found'});                        
+                        return res.status(400).json({status: false, message: 'category not found'});
                     }
                 });
         } else {
             return res.status(400).json({status: false, message: 'invalid'});
         }
     });
-
 
 
     app.post('/api/sync/item/:item_id?', function (req, res, next) {
