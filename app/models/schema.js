@@ -1,59 +1,73 @@
 var mongoose = require('mongoose');
 var bcrypt = require('bcrypt-nodejs');
+var crypto = require('crypto');
 
 var db = mongoose.connect('mongodb://GEEKY_MONGO/geekymenu');
 
 // 定義フェーズ
-var Schema = mongoose.Schema;
+var OrderItems = new mongoose.Schema({
+    items: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Items'
+    },
+    name: {
+        type: String
+    },
+    price: {
+        type: String
+    },
+    qnt: {
+        type: Number
+    },
+    status: {
+        type: Number
+    }
+});
 
 var Orders = new mongoose.Schema({
+    order_token: {
+        type: String,
+        required: true,
+        index: true
+    },
+    table_token: {
+        type: Number
+    },
     order_number: {
         type: String,
         required: true,
         index: true
     },
-    table_number: {
-        type: String,
-        required: true,
-        index: true
+    table: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Tables'
     },
     store: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Stores'
     },
-    order_status: {
-        type: Number
-    },
-    secret_number: {
-        type: Number
-    },
     customers: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Customer'
     }],
-    items: [{
-        item: {
-            item_id: {
-                type: String,
-                required: true
-            },
-            name: {
-                type: String,
-                required: true,
-                index: true
-            },
-            price: {
-                type: Number,
-                default: 0,
-                index: true
-            }
-        }
+    orderItems: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'OrderItems'
     }],
+    status: {
+        type: Number
+    },
     created: {
         type: Date,
         default: Date.now
     }
 });
+
+Orders.methods.generateOrderTokenHash = function () {
+    var current_date = (new Date()).valueOf().toString();
+    var random = Math.random().toString();
+    return crypto.createHash('sha1').update(current_date + random).digest('hex');
+};
 
 
 var Categories = new mongoose.Schema({
@@ -176,6 +190,10 @@ var Tables = new mongoose.Schema({
         type: Number,
         default: 0
     },
+    orders: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Orders'
+    }],
     'created': {
         type: Date,
         default: Date.now
@@ -188,8 +206,8 @@ var Store = new mongoose.Schema({
         ref: 'Users'
     }],
     'cloud_id': {
-        type:String,
-        index:true
+        type: String,
+        index: true
     },
     'store_name': {
         type: mongoose.Schema.Types.Mixed,
@@ -292,17 +310,13 @@ var Users = mongoose.Schema({
 });
 
 var Customer = mongoose.Schema({
-    fbid: String,
-    email: String,
-    first_name: String,
-    gender: String,
-    last_name: String,
-    profileUrl: String,
-    locale: String,
-    name: String,
-    timezone: String,
-    updated_time: Date,
-    accessToken: String
+    cloud_id: {
+        type: String,
+        index: true
+    },
+    displayName: {
+        type: String
+    }
 });
 
 
@@ -318,6 +332,7 @@ Users.methods.validPassword = function (password) {
 };
 
 exports.Orders = db.model('Orders', Orders);
+exports.OrderItems = db.model('OrderItems', OrderItems);
 exports.ImageStorage = db.model('ImageStorage', ImageStorage);
 exports.Items = db.model('Items', Items);
 exports.Categories = db.model('Categories', Categories);

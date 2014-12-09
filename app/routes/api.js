@@ -362,10 +362,26 @@ module.exports = function (app, plugins, mongoose, appEvent) {
     });
 
 
+    app.get('/api/table', isLoggedIn, function (req, res) {
+        Tables.find({})
+            .populate({
+                path: 'orders',
+                match: {
+                    $or: [{order_status: 1}, {order_status: 2}]
+                }
+            })
+            .exec(function (err, rows) {
+                if (err) {
+
+                } else {
+                    return res.json(rows);
+                }
+            });
+    });
+
     /**
      * Item
      */
-
     app.get('/api/item', isLoggedIn, function (req, res) {
         Items.find({})
             .populate('images')
