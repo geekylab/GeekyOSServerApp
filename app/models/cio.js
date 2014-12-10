@@ -130,24 +130,24 @@ GeekySocket.prototype.on_check_table_hash = function (data, fn) {
                 function (callback) {
                     console.log(data.table_id);
                     Tables.findById(data.table_id)
-                    .exec(function(err, table){
-                        if (!table) {
-                            console.log("table is not found");
-                            callback("table is not found");
-                        } else {
-                            if (table.table_status == 0) {
-                                table.table_status = 1;
-                                table.save(function(err, table){
-                                    if (err)
-                                        callback(err)
-                                    else
-                                        callback(null, table);
-                                });
+                        .exec(function (err, table) {
+                            if (!table) {
+                                console.log("table is not found");
+                                callback("table is not found");
                             } else {
-                                callback(null, table);
+                                if (table.table_status == 0) {
+                                    table.table_status = 1;
+                                    table.save(function (err, table) {
+                                        if (err)
+                                            callback(err)
+                                        else
+                                            callback(null, table);
+                                    });
+                                } else {
+                                    callback(null, table);
+                                }
                             }
-                        }
-                    });
+                        });
 
                 },
                 function (table, callback) {
@@ -162,8 +162,8 @@ GeekySocket.prototype.on_check_table_hash = function (data, fn) {
                                     if (!order) {
                                         var newOrder = new Orders();
                                         newOrder.order_number = 1234;
-                                        newOrder.table_token  = data.table_token;
-                                        newOrder.order_token  = newOrder.generateOrderTokenHash();
+                                        newOrder.table_token = data.table_token;
+                                        newOrder.order_token = newOrder.generateOrderTokenHash();
                                         newOrder.status = 2;
                                         newOrder.table = table._id;
                                         newOrder.save(function (err, obj) {
@@ -171,8 +171,8 @@ GeekySocket.prototype.on_check_table_hash = function (data, fn) {
                                                 callback(err);
                                             } else {
                                                 Orders.findById(obj._id)
-                                                    .populate("table","table_number")
-                                                    .exec(function(err, obj){
+                                                    .populate("table", "table_number")
+                                                    .exec(function (err, obj) {
                                                         if (err)
                                                             callback(err)
                                                         else
@@ -199,8 +199,8 @@ GeekySocket.prototype.on_check_table_hash = function (data, fn) {
 
                 if (orderObj.is_new && table) {
                     console.log("link table to order");
-                    Tables.findByIdAndUpdate(table._id,{$addToSet: {orders: orderObj.order._id}},
-                        function(err){
+                    Tables.findByIdAndUpdate(table._id, {$addToSet: {orders: orderObj.order._id}},
+                        function (err) {
                             if (err)
                                 console.log(err)
 
@@ -214,6 +214,9 @@ GeekySocket.prototype.on_check_table_hash = function (data, fn) {
                 }
 
                 if (self.socketIoServer) {
+                    if (table) {
+                        data.table_number = table.table_number;
+                    }
                     self.socketIoServer.of('admin').emit('check_table_hash', data);
                 }
             });
