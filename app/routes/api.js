@@ -13,6 +13,7 @@ var Tables = model.Tables;
 var Stores = model.Stores;
 var Ingredients = model.Ingredients;
 var ImageStorage = model.ImageStorage;
+var Customer = model.Customer;
 
 module.exports = function (app, plugins, mongoose, appEvent) {
 
@@ -503,6 +504,20 @@ module.exports = function (app, plugins, mongoose, appEvent) {
             res.json({message: 'Deleted!'});
         });
     });
+
+    /**
+     * Customers
+     */
+    app.get('/api/customer/:id', isLoggedIn, function (req, res) {
+        Customer.findOne({_id: req.params.id})
+            .exec(function (err, item) {
+                if (err) {
+                    return res.json(err);
+                }
+                res.json(item);
+            });
+    });
+
 
     /*
      Ingredients
