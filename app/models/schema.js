@@ -57,6 +57,10 @@ var Orders = new mongoose.Schema({
     status: {
         type: Number
     },
+    request_count: {
+        type: Number,
+        default: 1
+    },
     created: {
         type: Date,
         default: Date.now
@@ -310,13 +314,12 @@ var Users = mongoose.Schema({
 });
 
 var Customer = mongoose.Schema({
-    cloud_id: {
-        type: String,
-        index: true
+    name: {
+        family_name: String,
+        given_name: String
     },
-    displayName: {
-        type: String
-    }
+    image_url: String
+
 });
 
 

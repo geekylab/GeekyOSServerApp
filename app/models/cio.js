@@ -11,6 +11,7 @@ var socketio = require('socket.io');
 var Users = require('./schema').Users;
 var Orders = require('./schema').Orders;
 var Tables = require('./schema').Tables;
+var Customer = require('./schema').Customer;
 
 
 var cloudServerUrl = 'http://GEEKY_MENU_CLOUD_APP:8080';
@@ -181,13 +182,82 @@ GeekySocket.prototype.on_check_table_hash = function (data, fn) {
                                             }
                                         });
                                     } else {
-                                        console.log("has order");
-                                        callback(err, {is_new: false, order: order});
+                                        order.request_count++;
+                                        order.save(function (err, order) {
+                                            if (err) {
+                                                callback(err);
+                                            } else {
+                                                callback(null, {is_new: false, order: order}, table);
+                                            }
+                                        });
+
                                     }
                                 }
-                            })
+                            });
                     } else {
+                        callback("parameter errors");
+                    }
+                },
+                function (orderObj, table, callback) { //find customer and save
+                    if (orderObj && table && data.customer) {
+                        Customer.findById(data.customer.id)
+                            .exec(function (err, customer) {
+                                if (!customer) {
+                                    //create new customer
+                                    customer = new Customer();
+                                    customer._id = data.customer.id;
+                                }
 
+                                if (data.customer.name && (data.customer.name.family_name || data.customer.name.family_name))
+                                    customer.name = data.customer.name;
+
+                                if (data.customer.image_url)
+                                    customer.image_url = data.customer.image_url;
+
+                                //save this!
+                                customer.save(function (err, customer) {
+                                    if (err) {
+                                        callback(err);
+                                    } else {
+                                        callback(null, orderObj, table, customer);
+                                    }
+                                });
+
+                            });
+                    } else {
+                        callback("parameter errors");
+                    }
+                }, function (orderObj, table, customer, callback) { //link customer to order.
+
+                    if (orderObj && orderObj.order && customer) {
+                        var order = orderObj.order;
+                        Orders.findByIdAndUpdate(order._id, {$addToSet: {customers: customer._id}}, function (err, order) {
+                            if (err) {
+                                //fuck error!?
+                                //TODO: What do I do now?
+                                callback(err);
+
+                            } else {
+                                orderObj.order = order;
+                                callback(null, orderObj, table, customer);
+                            }
+                        });
+                    } else {
+                        callback("parameter errors");
+                    }
+                }, function (orderObj, table, customer, callback) {//link table to order.
+                    if (orderObj.is_new && table) {
+                        Tables.findByIdAndUpdate(table._id, {$addToSet: {orders: orderObj.order._id}},
+                            function (err, table) {
+                                if (err) {
+                                    //meu deus quantos erros!
+                                    callback(err);
+                                } else {
+                                    callback(null, orderObj, table, customer)
+                                }
+                            });
+                    } else {
+                        callback(null, orderObj, table, customer)
                     }
                 }
             ],
@@ -195,27 +265,18 @@ GeekySocket.prototype.on_check_table_hash = function (data, fn) {
                 if (err) {
                     console.log("error !!!!", err);
                 }
-                console.log(orderObj);
 
-                if (orderObj.is_new && table) {
-                    console.log("link table to order");
-                    Tables.findByIdAndUpdate(table._id, {$addToSet: {orders: orderObj.order._id}},
-                        function (err) {
-                            if (err)
-                                console.log(err)
-
-                            if (fn)
-                                fn(orderObj);
-
-                        });
-                } else {
-                    if (fn)
-                        fn(orderObj);
-                }
+                if (fn)
+                    fn(orderObj);
 
                 if (self.socketIoServer) {
+
                     if (table) {
                         data.table_number = table.table_number;
+                    }
+
+                    if (orderObj) {
+                        data.orderObj = orderObj;
                     }
                     self.socketIoServer.of('admin').emit('check_table_hash', data);
                 }
