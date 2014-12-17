@@ -97,6 +97,7 @@ GeekySocket.prototype.subEvents = function () {
         on(socket, 'token_error', bind(this, 'ontoken_error')),
         on(socket, 'notice', bind(this, 'onnotice')),
         on(socket, 'check_table_hash', bind(this, 'on_check_table_hash')),
+        on(socket, 'neworder', bind(this, 'neworder')),
     ];
 };
 
@@ -285,7 +286,11 @@ GeekySocket.prototype.on_check_table_hash = function (data, fn) {
         if (fn)
             fn("johna");
     }
+};
 
+GeekySocket.prototype.neworder = function (data, fn) {
+    console.log("neworder");
+    this.socketIoServer.of('admin').emit('neworder', data);
 
 };
 

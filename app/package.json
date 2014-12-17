@@ -25,7 +25,9 @@
     "socket.io-client": "~1.2.1",
     "parseuri": "0.0.4",
     "qr-image": "~2.0.0",
-    "crypto": "0.0.3"
+    "crypto": "0.0.3",
+    "firebase": "~2.0.6",
+    "xmlhttprequest": "~1.6.0"
   },
   "devDependencies": {},
   "engines": {
