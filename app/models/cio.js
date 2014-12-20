@@ -12,9 +12,10 @@ var Users = require('./schema').Users;
 var Orders = require('./schema').Orders;
 var Tables = require('./schema').Tables;
 var Customer = require('./schema').Customer;
+var CheckInRequest = require('./schema').CheckInRequest;
 
 
-var cloudServerUrl = 'http://GEEKY_MENU_CLOUD_APP:8080';
+var cloudServerUrl = config.cloud_api_host;
 
 
 function socket(app, user) {
@@ -97,6 +98,7 @@ GeekySocket.prototype.subEvents = function () {
         on(socket, 'token_error', bind(this, 'ontoken_error')),
         on(socket, 'notice', bind(this, 'onnotice')),
         on(socket, 'check_table_hash', bind(this, 'on_check_table_hash')),
+        on(socket, 'request_check_in', bind(this, 'request_check_in')),
         on(socket, 'neworder', bind(this, 'neworder')),
     ];
 };
@@ -125,12 +127,113 @@ GeekySocket.prototype.onnotice = function (data) {
     console.log('onnotice', data);
 };
 
+GeekySocket.prototype.request_check_in = function (data, fn) {
+    var self = this;
+    async.waterfall([
+        function(callback) { //find or create customer
+            Customer.findById(data.customer.id)
+                .exec(function (err, customer) {
+
+                    if (!customer) {
+                        //create new customer
+                        customer = new Customer();
+                        customer._id = data.customer.id;
+                    }
+
+                    if (data.customer.name && (data.customer.name.family_name || data.customer.name.family_name))
+                                    customer.name = data.customer.name;
+
+                    if (data.customer.image_url)
+                        customer.image_url = data.customer.image_url;
+
+                    //save this!
+                    customer.save(function (err, customer) {
+                        if (err) {
+                            callback(err);
+                        } else {
+                            callback(null, customer);
+                        }
+                    });
+            });
+        }, function (customer, callback) { //search table
+                Tables.findById(data.table_id)
+                        .exec(function (err, table) {
+                            if (!table) {
+                                callback("table is not found");
+                            } else {
+                                if (table.table_status == 1) {
+                                    console.log("table is busy")
+                                    callback("table is busy");
+                                } else {
+                                    callback(null, customer, table);
+                                }
+                            }
+                        });
+
+        }, function (customer, table, callback) { //save new request
+                console.log("func3");
+                ;
+                CheckInRequest
+                .findById(data.checkInRequest._id)
+                .exec(function(err, checkInRequest) {
+                    if (err) {
+                        console.log("err findOne");
+                        return callback(err)
+                    }
+
+
+                    if (!checkInRequest) {
+                        checkInRequest = new CheckInRequest();
+                        checkInRequest._id           = data.checkInRequest._id;
+                        checkInRequest.table         = data.checkInRequest.table;
+                        checkInRequest.customer      = data.checkInRequest.customer;
+                    }
+
+                    checkInRequest.request_count = data.checkInRequest.request_count;
+                    checkInRequest.status = 1;
+                    checkInRequest.request_token = data.checkInRequest.request_token;
+
+                    checkInRequest.save(function (err, obj) {
+                        if (err) {
+                            console.log("err save");
+                            return callback(err);
+                        }
+                        CheckInRequest.findById(obj._id)
+                        .populate("table")
+                        .populate("customer")
+                        .exec(function(err, obj){
+                            if (err)
+                                return callback(err);
+                            callback(null, customer, table, obj);
+                        });
+                    });
+                });
+        }
+        ],function(err, customer, table, checkInRequest) {
+
+            if (err) {
+                console.log("request_check_in : err", err);
+                if (fn) {
+                    return fn({status:false, err: err});
+                }
+                return;
+            } else {
+                self.socketIoServer.of('admin').emit('request_check_in', checkInRequest);
+                if (fn)
+                    fn({status: true, checkInRequest: checkInRequest});
+
+                }
+        }
+    );
+
+
+};
+
 GeekySocket.prototype.on_check_table_hash = function (data, fn) {
     if (data.table_id) {
         var self = this;
         async.waterfall([
                 function (callback) {
-                    console.log(data.table_id);
                     Tables.findById(data.table_id)
                         .exec(function (err, table) {
                             if (!table) {
@@ -154,7 +257,7 @@ GeekySocket.prototype.on_check_table_hash = function (data, fn) {
                 },
                 function (table, callback) {
                     if (table) {
-                        Orders.findOne({table_token: data.table_token})
+                        Orders.findOne({table: table._id})
                             .populate({
                                 path: 'tables'
                             }).exec(function (err, order) {
@@ -164,7 +267,6 @@ GeekySocket.prototype.on_check_table_hash = function (data, fn) {
                                     if (!order) {
                                         var newOrder = new Orders();
                                         newOrder.order_number = 1234;
-                                        newOrder.table_token = data.table_token;
                                         newOrder.order_token = newOrder.generateOrderTokenHash();
                                         newOrder.status = 2;
                                         newOrder.table = table._id;
@@ -279,6 +381,8 @@ GeekySocket.prototype.on_check_table_hash = function (data, fn) {
                     if (orderObj) {
                         data.orderObj = orderObj;
                     }
+
+                    console.log("emit : check_table_hash");
                     self.socketIoServer.of('admin').emit('check_table_hash', data);
                 }
             });

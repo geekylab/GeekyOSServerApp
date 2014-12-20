@@ -3,6 +3,7 @@
 // load all the things we need
 var LocalStrategy = require('passport-local').Strategy;
 var request = require('request');
+var config = require('../config/auth.local');
 
 // load up the user model
 var User = require('../models/schema').Users;
@@ -48,10 +49,9 @@ module.exports = function (passport) {
                     return this.protocol + this.host + ':' + this.port + path;
                 },
                 getUrlWithDomain: function (path) {
-                    return this.protocol + 'GEEKY_MENU_CLOUD_APP' + ':' + this.port + path;
+                    return config.cloud_api_host + path;
                 }
             };
-            var CLOUD_URL = 'GEEKY_MENU_CLOUD_APP:8080';
             process.nextTick(function () {
                 //check cloud is available
                 var authenticadCloud = false;
@@ -60,6 +60,7 @@ module.exports = function (passport) {
                         checkLocalUser(false);
                     } else {
                         var url = api_url.getUrlWithDomain('/auth/login');
+                        console.log(url);
                         var options = {
                             url: url,
                             method: 'POST',
@@ -67,8 +68,7 @@ module.exports = function (passport) {
                             json: true
                         };
                         request(options, function (error, response, body) {
-                            console.log('clound login response');
-                            console.log(body.status);
+                            console.log('clound login response', body);
                             console.log(response.headers['set-cookie']);
                             if (body.status) {
                                 checkLocalUser(true, response);

@@ -34,7 +34,7 @@ var Orders = new mongoose.Schema({
         type: Number
     },
     order_number: {
-        type: String,
+        type: Number,
         required: true,
         index: true
     },
@@ -72,6 +72,36 @@ Orders.methods.generateOrderTokenHash = function () {
     var random = Math.random().toString();
     return crypto.createHash('sha1').update(current_date + random).digest('hex');
 };
+
+var CheckInRequest = new mongoose.Schema({
+    table: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Tables'
+    },
+    store: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Stores'
+    },
+    customer:{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Customer'
+    },
+    status: {
+        type: Number
+    },
+    request_token: {
+        type: String,
+        index: true
+    },
+    request_count: {
+        type: Number,
+        default: 1
+    },
+    created: {
+        type: Date,
+        default: Date.now
+    }
+});
 
 
 var Categories = new mongoose.Schema({
@@ -344,3 +374,4 @@ exports.Users = db.model('Users', Users);
 exports.Stores = db.model('Stores', Store);
 exports.Ingredients = db.model('Ingredients', Ingredients);
 exports.Customer = db.model('Customer', Customer);
+exports.CheckInRequest = db.model('CheckInRequest', CheckInRequest);

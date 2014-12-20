@@ -14,6 +14,7 @@ var Stores = model.Stores;
 var Ingredients = model.Ingredients;
 var ImageStorage = model.ImageStorage;
 var Customer = model.Customer;
+var CheckInRequest = model.CheckInRequest;
 
 module.exports = function (app, plugins, mongoose, appEvent) {
 
@@ -589,6 +590,137 @@ module.exports = function (app, plugins, mongoose, appEvent) {
                     res.json(obj);
                 }
             });
+    });
+
+    app.get('/api/request', isLoggedIn, function (req, res, next) {
+        CheckInRequest.find({}) //{status: 1}
+        .populate("table")
+        .populate("customer")
+        .exec(function(err, checkInRequest) {
+            if (err)
+                return res.status(400).json(err);
+            res.json(checkInRequest);
+        });
+    });
+
+    app.put('/api/request/:id', isLoggedIn, function (req, res, next) {
+        var user = req.user;
+        var sendResultForCloud = function (checkInRequest, order) {
+            var cloudUrl = config.cloud_api_host + '/open-api/request';
+            var sendData = {};
+            sendData.request_token = checkInRequest.request_token;
+            sendData.status = checkInRequest.status;
+            if (order)
+                sendData.order = order;
+
+            var options = {
+                url: cloudUrl + '/' + checkInRequest._id,
+                method: 'put',
+                body: {
+                    data: sendData
+                },
+                json: true,
+                'auth': {
+                    'user': user.username,
+                    'pass': user.rawpassword,
+                    'sendImmediately': false
+                }
+            };
+
+            request(options, function (error, response, body) {
+                if (response.statusCode == 200) {
+                    if (body.status) {
+                        checkInRequest.remove(function(err) {
+                            console.log("remove", err);
+                        });
+                        return res.json(body);
+                    } else {
+                        return res.status(400).json(body);
+                    }
+                } else {
+                    var statusCode = response.statusCode || 500;
+                    return res.status(statusCode).json({status: false});
+                }
+            });
+        };
+
+
+
+        CheckInRequest.findById(req.params.id)
+        .populate("table")
+        .populate("customer")
+        .exec(function(err, checkInRequest) {
+            if (err)
+                return res.status(400).json(err);
+
+            var emitFlg = -2;
+//            if (checkInRequest.status === 1) {
+                if (req.body.status === 0) {
+                    checkInRequest.status = 0;
+                    emitFlg = 0;
+                    //create a new order
+                } else {
+                    checkInRequest.status = -1;
+                    emitFlg = -1;
+                }
+//            }
+
+            checkInRequest.save(function(err, checkInRequest) {
+                if (err)
+                    return res.json(400).json(err);
+
+                switch (emitFlg) {
+                    case 0:
+                        async.waterfall([
+                            function (asyncCallback) { //set table busy
+                                checkInRequest.table.table_status = 1;
+                                checkInRequest.table.save(function (err, table) {
+                                    if (err)
+                                        return asyncCallback(err);
+                                    asyncCallback(null, table);
+                                });
+                            }, function(table, asyncCallback) { //count order
+                                Orders.count({}).count(function(err, orderCount){
+                                    asyncCallback(err, table, orderCount);
+                                });
+                            },
+                            function (table, orderCount, asyncCallback) { //create new order
+                                var order = new Orders();
+                                order.order_number = ++orderCount;
+                                order.table = table._id;
+                                order.store = checkInRequest.store;
+                                order.customers = [];
+                                order.customers.push(checkInRequest.customer._id);
+                                order.status = 1;
+                                order.order_token = order.generateOrderTokenHash();
+                                order.save(function(err, order) {
+                                    if (err) {
+                                        return asyncCallback(err);
+                                    }
+                                    asyncCallback(null, table, order);
+
+                                });
+                            }],
+                            function(err, table, order) {
+                                if (err) {
+                                    return console.log(err);
+                                }
+                                sendResultForCloud(checkInRequest, order);
+                            }
+                        );
+                        break;
+                    case -1:
+                        sendResultForCloud(checkInRequest);
+                        break;
+                    default:
+                        res.json(checkInRequest);
+                }
+
+                if (emitFlg != -2) {
+
+                }
+            });
+        });
     });
 
 
